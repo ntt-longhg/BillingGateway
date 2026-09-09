@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: BillingGateway
+
+  # 1. K�ch ho?t Virtual Threads cho Tomcat & Async Task
+  threads:
+    virtual:
+      enabled: true
+
+  # 2. C?u h�nh k?t n?i C? s? d? li?u d�ng chung
+  datasource:
+    url: jdbc:mariadb://172.16.10.188:3306/billing_gateway
+    username: root
+    password: akuo-kfo
+    driver-class-name: org.mariadb.jdbc.Driver
+
+  # 3. C?u h�nh ki?m so�t k?t n?i c? s? d? li?u (Connection Pool)
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: update # T? ??ng ??ng b? c?u tr�c b?ng t? code Java xu?ng DB (khi dev)
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+  # 4. C?u h�nh H�ng ??i RabbitMQ (X? l� b?t ??ng b? giao d?ch)
+#  rabbitmq:
+#    host: localhost
+#    port: 5672
+#    username: guest
+#    password: guest
+#    listener:
+#      simple:
+#        acknowledge-mode: manual # B?t c? ch? x�c nh?n th? c�ng (Manual ACK) ?? ch?ng m?t tin nh?n
