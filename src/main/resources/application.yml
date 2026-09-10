@@ -1,35 +1,71 @@
 spring:
+  jackson:
+    time-zone: Asia/Ho_Chi_Minh
   application:
     name: BillingGateway
 
-  # 1. K�ch ho?t Virtual Threads cho Tomcat & Async Task
+  # 1. Kích hoạt Virtual Threads cho Tomcat & Async Task
   threads:
     virtual:
       enabled: true
 
-  # 2. C?u h�nh k?t n?i C? s? d? li?u d�ng chung
+  # 2. Cấu hình kết nối Cơ sở dữ liệu dung chung
   datasource:
     url: jdbc:mariadb://172.16.10.188:3306/billing_gateway
     username: root
     password: akuo-kfo
     driver-class-name: org.mariadb.jdbc.Driver
 
-  # 3. C?u h�nh ki?m so�t k?t n?i c? s? d? li?u (Connection Pool)
+  # 3. Cấu hình SQL initialization
+#  sql:
+#    init:
+#      mode: always
+#      schema-locations: classpath:schema.sql
+
+  # 4. Cấu hình JPA/Hibernate
   jpa:
     open-in-view: false
     hibernate:
-      ddl-auto: update # T? ??ng ??ng b? c?u tr�c b?ng t? code Java xu?ng DB (khi dev)
+      ddl-auto: none  # Tắt Hibernate DDL - dùng schema.sql
+    defer-datasource-initialization: true  # Chạy SQL script trước
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+        jdbc:
+          time_zone: Asia/Ho_Chi_Minh
 
-  # 4. C?u h�nh H�ng ??i RabbitMQ (X? l� b?t ??ng b? giao d?ch)
-#  rabbitmq:
-#    host: localhost
-#    port: 5672
-#    username: guest
-#    password: guest
-#    listener:
-#      simple:
-#        acknowledge-mode: manual # B?t c? ch? x�c nh?n th? c�ng (Manual ACK) ?? ch?ng m?t tin nh?n
+  # 5. Cấu hình Hàng Đợi RabbitMQ (Xử lý bất đồng bộ giao dịch)
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 10
+        concurrency: 5
+        max-concurrency: 20
+        retry:
+          enabled: true
+          initial-interval: 1000
+          max-attempts: 3
+          multiplier: 2.0
+
+  # 6. SpringDoc OpenAPI
+  springdoc:
+    swagger-ui:
+      path: /swagger-ui.html
+      tags-sorter: alpha
+      operations-sorter: alpha
+    api-docs:
+      path: /v3/api-docs
+    packages-to-scan: com.gateway.billing.modules.*.controller
+
+# Application custom config
+app:
+  security:
+    api-key:
+      header: X-API-Key
+      valid-keys: x-admin
