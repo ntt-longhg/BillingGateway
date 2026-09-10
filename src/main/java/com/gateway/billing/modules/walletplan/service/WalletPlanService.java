@@ -7,7 +7,6 @@ import com.gateway.billing.core.exception.BusinessException;
 import com.gateway.billing.core.exception.ResourceNotFoundException;
 import com.gateway.billing.core.rabbitmq.MessageProducer;
 import com.gateway.billing.modules.pricingplan.model.BonusType;
-import com.gateway.billing.modules.pricingplan.model.CreditLimitAction;
 import com.gateway.billing.modules.pricingplan.model.PricingPlan;
 import com.gateway.billing.modules.pricingplan.repository.PricingPlanRepository;
 import com.gateway.billing.modules.tenant.model.Tenant;
@@ -184,7 +183,7 @@ public class WalletPlanService {
     private BigDecimal calculateBonus(PricingPlan plan, BigDecimal price) {
         if (plan.getBonusType() == BonusType.PERCENTAGE && plan.getBonusValue() != null) {
             return price.multiply(plan.getBonusValue()).divide(BigDecimal.valueOf(100));
-        } else if (plan.getBonusType() == BonusType.FIXED_AMOUNT) {
+        } else if (plan.getBonusType() == BonusType.FIXED) {
             return plan.getBonusValue() != null ? plan.getBonusValue() : BigDecimal.ZERO;
         }
         return BigDecimal.ZERO;

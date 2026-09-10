@@ -11,31 +11,31 @@ public final class CursorUtil {
     /**
      * Build a CursorPage from a list of items.
      * Assumes items are already sorted and filtered.
-     * If content.size() == size + 1, there are more items.
+     * If items.size() == size + 1, there are more items.
      */
     public static <T, E> CursorPage<T> paginate(
-            List<T> content,
+            List<T> items,
             int requestedSize,
             String cursor
     ) {
-        boolean hasNext = content.size() > requestedSize;
+        boolean hasNext = items.size() > requestedSize;
 
         if (hasNext) {
-            content = content.subList(0, requestedSize);
+            items = items.subList(0, requestedSize);
         }
 
         String nextCursor = null;
-        if (hasNext && !content.isEmpty()) {
-            E lastItem = (E) content.getLast();
+        if (hasNext && !items.isEmpty()) {
+            E lastItem = (E) items.getLast();
             nextCursor = extractId(lastItem);
         }
 
-        return CursorPage.of(content, nextCursor, hasNext, requestedSize);
+        return CursorPage.of(items, nextCursor, hasNext, requestedSize);
     }
 
     /**
      * Extract UUID as string from an entity-like object.
-     * Used when content is List<Object[]> from native queries.
+     * Used when items is List<Object[]> from native queries.
      */
     public static String extractId(Object item) {
         if (item == null) return null;

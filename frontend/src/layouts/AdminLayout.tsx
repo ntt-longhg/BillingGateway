@@ -1,0 +1,140 @@
+import React from 'react';
+import { Outlet, Link, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Boxes,
+  FileSpreadsheet,
+  Clock,
+  Building2,
+  Bell,
+  UserCheck,
+  ChevronRight,
+  ShieldAlert,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+
+export const AdminLayout: React.FC = () => {
+  const location = useLocation();
+
+  const menuItems = [
+    { path: '/admin', label: 'Tổng quan (Dashboard)', icon: LayoutDashboard },
+    { path: '/admin/services', label: 'Danh mục dịch vụ', icon: Boxes },
+    { path: '/admin/pricing-plans', label: 'Bảng giá Tenant', icon: FileSpreadsheet },
+    { path: '/admin/wallet-plans/pending', label: 'Duyệt gói cước', icon: Clock, badge: 'Mới' },
+    { path: '/admin/tenants', label: 'Quản lý Tenant', icon: Building2 },
+  ];
+
+  return (
+    <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
+      {/* Sidebar */}
+      <aside className="w-64 bg-slate-900 text-white flex flex-col shrink-0 border-r border-slate-800 shadow-lg">
+        {/* Brand Header */}
+        <div className="h-16 px-6 flex items-center justify-between border-b border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-md">
+              BG
+            </div>
+            <div>
+              <h2 className="font-bold text-base tracking-wide text-white">BillingGateway</h2>
+              <p className="text-xs text-slate-400">Admin Control Panel</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation Links */}
+        <nav className="flex-1 p-4 space-y-1">
+          <p className="px-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase mb-2">
+            Quản trị hệ thống
+          </p>
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  'flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30'
+                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                )}
+              >
+                <div className="flex items-center gap-3">
+                  <Icon className={cn('h-4 w-4', isActive ? 'text-white' : 'text-slate-400')} />
+                  <span>{item.label}</span>
+                </div>
+                {item.badge ? (
+                  <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
+                    {item.badge}
+                  </Badge>
+                ) : (
+                  isActive && <ChevronRight className="h-4 w-4 text-white/70" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* System Footer Info */}
+        <div className="p-4 border-t border-slate-800 bg-slate-950/50">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-300">
+              <ShieldAlert className="h-4 w-4" />
+            </div>
+            <div className="text-xs">
+              <p className="font-medium text-slate-200">Phiên bản UI 1.0.0</p>
+              <p className="text-slate-400">Spring Boot REST API v1</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Container */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-xs sticky top-0 z-10">
+          <div className="flex items-center gap-2 text-sm text-slate-500">
+            <span className="font-medium text-slate-700">Billing Gateway Platform</span>
+            <span>/</span>
+            <span className="capitalize text-slate-900 font-semibold">
+              {location.pathname === '/admin'
+                ? 'Tổng quan'
+                : location.pathname.split('/').pop()?.replace('-', ' ')}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button className="p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors relative">
+              <Bell className="h-5 w-5" />
+              <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-blue-600 rounded-full" />
+            </button>
+            <div className="h-6 w-[1px] bg-slate-200" />
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 font-semibold">
+                <UserCheck className="h-4 w-4" />
+              </div>
+              <div className="text-sm">
+                <p className="font-medium text-slate-800 leading-tight">Administrator</p>
+                <p className="text-xs text-slate-500">admin@billinggateway.com</p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Content Outlet */}
+        <main className="flex-1 overflow-hidden max-h-[calc(100vh-64px-49px)]">
+          <div className="overflow-y-auto h-full p-4 md:p-4">
+            <Outlet />
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="py-4 px-6 bg-white border-t border-slate-200 text-center text-xs text-slate-500">
+          © 2026 BillingGateway Platform. Tất cả các quyền được bảo lưu.
+        </footer>
+      </div>
+    </div>
+  );
+};

@@ -16,7 +16,7 @@ import java.util.List;
 public class CursorPage<T> {
 
     @Schema(description = "List of items in this page")
-    private List<T> content;
+    private List<T> items;
 
     @Schema(description = "Cursor for the next page, null if no more pages")
     private String nextCursor;
@@ -30,13 +30,13 @@ public class CursorPage<T> {
     @Schema(description = "Number of items returned in this page", example = "20")
     private int count;
 
-    public static <T> CursorPage<T> of(List<T> content, String nextCursor, boolean hasNext, int size) {
+    public static <T> CursorPage<T> of(List<T> items, String nextCursor, boolean hasNext, int size) {
         return CursorPage.<T>builder()
-                .content(content)
+                .items(items)
                 .nextCursor(nextCursor)
                 .hasNext(hasNext)
                 .size(size)
-                .count(content.size())
+                .count(items.size())
                 .build();
     }
 }
