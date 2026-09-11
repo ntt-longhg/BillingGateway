@@ -2,34 +2,44 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { invoiceService } from '@/services/billingServices';
 import { InvoiceResponse } from '@/types/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { FileText, CheckCircle2, AlertCircle, CreditCard, RefreshCw } from 'lucide-react';
+import { FileText, CheckCircle2, AlertCircle, CreditCard, RefreshCw, Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export const EmbedInvoicesPage: React.FC = () => {
+  const { token } = useAuth();
   const [invoices, setInvoices] = useState<InvoiceResponse[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchInvoices = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await invoiceService.getAll();
       if (res.data.success && res.data?.data?.items) {
         setInvoices(res.data?.data?.items);
+      } else {
+        setError('Không thể tải danh sách hóa đơn.');
       }
     } catch (err) {
       console.error(err);
+      setError('Lỗi kết nối đến server.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchInvoices();
-  }, []);
+    if (token) {
+      fetchInvoices();
+    }
+  }, [token]);
 
   const handlePay = async (invoiceId: string) => {
     try {
@@ -42,6 +52,14 @@ export const EmbedInvoicesPage: React.FC = () => {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Thanh toán thất bại.' });
     }
   };
+
+  if (!token) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -61,22 +79,29 @@ export const EmbedInvoicesPage: React.FC = () => {
       </div>
 
       {message && (
-        <div
-          className={`p-3 rounded-lg flex items-center gap-2 text-xs ${message.type === 'success'
-              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
-            }`}
-        >
+        <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
           {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          <span>{message.text}</span>
-        </div>
+          <AlertDescription>{message.text}</AlertDescription>
+        </Alert>
+      )}
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       <Card className="border-slate-200 shadow-sm">
         <CardContent className="p-0">
-          {invoices.length === 0 ? (
+          {loading && invoices.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-5 w-5 text-blue-600 animate-spin mr-2" />
+              <span className="text-sm text-slate-500">Đang tải dữ liệu...</span>
+            </div>
+          ) : invoices.length === 0 ? (
             <div className="text-center py-12 text-slate-400 text-sm">
-              Chưa có bản ghi hóa đơn nào được phát hành.
+              {error ? 'Lỗi tải dữ liệu.' : 'Chưa có bản ghi hóa đơn nào được phát hành.'}
             </div>
           ) : (
             <Table>

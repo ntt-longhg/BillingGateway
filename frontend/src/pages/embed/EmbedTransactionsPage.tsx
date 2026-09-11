@@ -3,38 +3,56 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { transactionService } from '@/services/billingServices';
 import { TransactionResponse } from '@/types/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { ArrowDownLeft, ArrowUpRight, History, RefreshCw, Filter } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, History, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export const EmbedTransactionsPage: React.FC = () => {
+  const { token } = useAuth();
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [filterType, setFilterType] = useState<string>('ALL');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchTransactions = async () => {
     setLoading(true);
+    setError(null);
     try {
       const res = await transactionService.getAll();
       if (res.data.success && res.data?.data?.items) {
         setTransactions(res.data?.data?.items);
+      } else {
+        setError('Không thể tải lịch sử giao dịch.');
       }
     } catch (err) {
       console.error(err);
+      setError('Lỗi kết nối đến server.');
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTransactions();
-  }, []);
+    if (token) {
+      fetchTransactions();
+    }
+  }, [token]);
 
   const filteredTxns = transactions.filter((t) => {
     if (filterType === 'ALL') return true;
     return t.type === filterType;
   });
+
+  if (!token) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="h-6 w-6 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -55,10 +73,11 @@ export const EmbedTransactionsPage: React.FC = () => {
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${filterType === type
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
+                  filterType === type
                     ? 'bg-white text-blue-600 shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900'
-                  }`}
+                }`}
               >
                 {type}
               </button>
@@ -70,11 +89,23 @@ export const EmbedTransactionsPage: React.FC = () => {
         </div>
       </div>
 
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       <Card className="border-slate-200 shadow-sm">
         <CardContent className="p-0">
-          {filteredTxns.length === 0 ? (
+          {loading && transactions.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-5 w-5 text-blue-600 animate-spin mr-2" />
+              <span className="text-sm text-slate-500">Đang tải dữ liệu...</span>
+            </div>
+          ) : filteredTxns.length === 0 ? (
             <div className="text-center py-12 text-slate-400 text-sm">
-              Không tìm thấy biến động giao dịch nào.
+              {error ? 'Lỗi tải dữ liệu.' : 'Không tìm thấy biến động giao dịch nào.'}
             </div>
           ) : (
             <Table>
