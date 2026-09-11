@@ -1,34 +1,53 @@
 import React from 'react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Boxes,
   FileSpreadsheet,
   Clock,
   Building2,
+  Wallet,
   Bell,
   UserCheck,
   ChevronRight,
   ShieldAlert,
+  LogOut,
+  Code,
+  Play,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/context/AuthContext';
 
 export const AdminLayout: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { adminLogout } = useAuth();
 
   const menuItems = [
-    { path: '/admin', label: 'Tổng quan (Dashboard)', icon: LayoutDashboard },
-    { path: '/admin/services', label: 'Danh mục dịch vụ', icon: Boxes },
+    { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
+    { path: '/admin/services', label: 'Danh mục Dịch vụ', icon: Boxes },
     { path: '/admin/pricing-plans', label: 'Bảng giá Tenant', icon: FileSpreadsheet },
+    { path: '/admin/wallets', label: 'Quản lý Ví', icon: Wallet },
     { path: '/admin/wallet-plans/pending', label: 'Duyệt gói cước', icon: Clock, badge: 'Mới' },
     { path: '/admin/tenants', label: 'Quản lý Tenant', icon: Building2 },
   ];
 
+  const toolItems = [
+    { path: '/admin/docs/embed', label: 'Hướng dẫn nhúng', icon: Code },
+    { path: '/admin/demo', label: 'Demo iFrame', icon: Play },
+  ];
+
+  const handleLogout = () => {
+    adminLogout();
+    navigate('/admin/login');
+  };
+
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans text-slate-900">
       {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 text-white flex flex-col shrink-0 border-r border-slate-800 shadow-lg">
+      <aside className="w-64 bg-slate-900 text-white flex flex-col shrink-0 border-r border-slate-800 shadow-lg h-[100vh]">
         {/* Brand Header */}
         <div className="h-16 px-6 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3">
@@ -43,7 +62,7 @@ export const AdminLayout: React.FC = () => {
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <p className="px-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase mb-2">
             Quản trị hệ thống
           </p>
@@ -75,7 +94,46 @@ export const AdminLayout: React.FC = () => {
               </Link>
             );
           })}
+
+          <div className="pt-4 mt-4 border-t border-slate-800">
+            <p className="px-3 text-[11px] font-semibold tracking-wider text-slate-400 uppercase mb-2">
+              Công cụ
+            </p>
+            {toolItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={cn(
+                    'flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150',
+                    isActive
+                      ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30'
+                      : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon className={cn('h-4 w-4', isActive ? 'text-white' : 'text-slate-400')} />
+                    <span>{item.label}</span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
         </nav>
+
+        {/* Logout Button */}
+        <div className="p-4 border-t border-slate-800">
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-slate-300 hover:text-white hover:bg-slate-800 gap-3"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="text-sm">Đăng xuất</span>
+          </Button>
+        </div>
 
         {/* System Footer Info */}
         <div className="p-4 border-t border-slate-800 bg-slate-950/50">

@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { usageLogService, creditAdjustmentService } from '@/services/billingServices';
-import { UsageLogResponse, CreditAdjustmentResponse } from '@/types/api';
+import { UsageLogResponse, CreditAdjustmentResponse, PaginatedResponse } from '@/types/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { BarChart3, Activity, ShieldCheck, RefreshCw, Layers } from 'lucide-react';
 
@@ -22,10 +22,21 @@ export const EmbedReportsPage: React.FC = () => {
       ]);
 
       if (logsRes.status === 'fulfilled' && logsRes.value.data.data) {
-        setUsageLogs(logsRes.value.data.data);
+        const data = logsRes.value.data.data;
+        // Handle both paginated and array responses
+        if (Array.isArray(data)) {
+          setUsageLogs(data);
+        } else if (data && 'items' in data) {
+          setUsageLogs((data as PaginatedResponse<UsageLogResponse>).items || []);
+        }
       }
       if (adjRes.status === 'fulfilled' && adjRes.value.data.data) {
-        setAdjustments(adjRes.value.data.data);
+        const data = adjRes.value.data.data;
+        if (Array.isArray(data)) {
+          setAdjustments(data);
+        } else if (data && 'items' in data) {
+          setAdjustments((data as PaginatedResponse<CreditAdjustmentResponse>).items || []);
+        }
       }
     } catch (err) {
       console.error(err);
@@ -93,7 +104,7 @@ export const EmbedReportsPage: React.FC = () => {
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Layers className="h-4 w-4 text-emerald-600" /> Nhật ký Log Tiêu Dùng (Usage Logs)
+            <Layers className="h-4 w-4 text-emerald-600" /> Nhật ký Log Tiêu Dùng
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -104,7 +115,7 @@ export const EmbedReportsPage: React.FC = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Mã Dịch Vụ</TableHead>
-                  <TableHead>Sản Lượng (Usage)</TableHead>
+                  <TableHead>Sản Lượng</TableHead>
                   <TableHead>Số Tiền Tính Phí</TableHead>
                   <TableHead>Ví Snapshot</TableHead>
                   <TableHead>Thời Gian</TableHead>
@@ -135,6 +146,48 @@ export const EmbedReportsPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Credit Adjustments Table */}
+      {adjustments.length > 0 && (
+        <Card className="border-slate-200 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-blue-600" /> Lịch sử Điều chỉnh Credit
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Loại điều chỉnh</TableHead>
+                  <TableHead>Số tiền</TableHead>
+                  <TableHead>Trước &rarr; Sau</TableHead>
+                  <TableHead>Lý do</TableHead>
+                  <TableHead>Thời Gian</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {adjustments.map((adj) => (
+                  <TableRow key={adj.id}>
+                    <TableCell>
+                      <Badge variant={adj.type === 'INCREASE' ? 'success' : 'destructive'}>
+                        {adj.type === 'INCREASE' ? 'Tăng' : 'Giảm'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-semibold">{formatCurrency(adj.adjustmentAmount)}</TableCell>
+                    <TableCell className="text-xs text-slate-500">
+                      {formatCurrency(adj.creditLimitBefore)} &rarr;{' '}
+                      <span className="font-medium text-slate-800">{formatCurrency(adj.creditLimitAfter)}</span>
+                    </TableCell>
+                    <TableCell className="text-xs text-slate-600">{adj.reason || '-'}</TableCell>
+                    <TableCell className="text-xs text-slate-500">{formatDate(adj.createdAt)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

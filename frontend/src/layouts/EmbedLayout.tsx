@@ -1,19 +1,37 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useSearchParams } from 'react-router-dom';
 import { useIframeResize } from '../hooks/useIframeResize';
 import { usePostMessageListener } from '../hooks/usePostMessageListener';
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import { EmbedAccessDeniedPage } from '../pages/embed/EmbedAccessDeniedPage';
+import { Loader2 } from 'lucide-react';
 
-/**
- * Layout Embed dành cho iFrame Client.
- * RỖNG HOÀN TOÀN (Không Header, Sidebar, Footer).
- * Hiển thị Edge-to-Edge và tự động điều khiển postMessage.
- */
-export const EmbedLayout: React.FC = () => {
-  // Tự động gửi tín hiệu RESIZE ra trang cha khi chiều cao thay đổi
+const EmbedContent: React.FC = () => {
+  const { token, authReady, validateEmbedToken } = useAuth();
+  const [searchParams] = useSearchParams();
+
   useIframeResize();
-
-  // Lắng nghe tín hiệu NAVIGATE từ menu trang cha
   usePostMessageListener();
+
+  // Still loading auth state - show spinner, NO content flash
+  if (!authReady) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
+  // Auth ready - check api-key
+  const apiKeyFromUrl = searchParams.get('api-key');
+
+  if (!apiKeyFromUrl && !token) {
+    return <EmbedAccessDeniedPage />;
+  }
+
+  if (token && !validateEmbedToken()) {
+    return <EmbedAccessDeniedPage />;
+  }
 
   return (
     <div
@@ -22,5 +40,13 @@ export const EmbedLayout: React.FC = () => {
     >
       <Outlet />
     </div>
+  );
+};
+
+export const EmbedLayout: React.FC = () => {
+  return (
+    <AuthProvider>
+      <EmbedContent />
+    </AuthProvider>
   );
 };

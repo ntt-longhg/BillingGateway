@@ -1,13 +1,24 @@
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Boxes, Plus, DollarSign, Layers, CheckCircle2, AlertCircle } from 'lucide-react';
 import { serviceCatalogService } from '@/services/billingServices';
 import { ServiceResponse, ServicePriceResponse, PriceTierResponse } from '@/types/api';
-import { formatDate, formatCurrency } from '@/lib/utils';
+import { formatDate, formatCurrency, getStatusConfig } from '@/lib/utils';
 
 export const ServiceCatalogPage: React.FC = () => {
   const [services, setServices] = useState<ServiceResponse[]>([]);
@@ -17,11 +28,12 @@ export const ServiceCatalogPage: React.FC = () => {
   const [selectedPrice, setSelectedPrice] = useState<ServicePriceResponse | null>(null);
   const [tiers, setTiers] = useState<PriceTierResponse[]>([]);
 
-  // Modals state
+  // Dialog states
   const [showCreateService, setShowCreateService] = useState(false);
-  const [newService, setNewService] = useState({ code: '', name: '', description: '' });
-
   const [showCreatePrice, setShowCreatePrice] = useState(false);
+  const [showCreateTier, setShowCreateTier] = useState(false);
+
+  const [newService, setNewService] = useState({ code: '', name: '', description: '' });
   const [newPrice, setNewPrice] = useState({
     initialSize: 1,
     initialFee: 0,
@@ -29,8 +41,6 @@ export const ServiceCatalogPage: React.FC = () => {
     subsequentFee: 0,
     effectiveDate: new Date().toISOString(),
   });
-
-  const [showCreateTier, setShowCreateTier] = useState(false);
   const [newTier, setNewTier] = useState({
     tier: 'TIER_1',
     basicFee: 0,
@@ -136,7 +146,7 @@ export const ServiceCatalogPage: React.FC = () => {
     try {
       const res = await serviceCatalogService.addPriceTier(selectedPrice.id, newTier);
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Têm bậc giá thành công!' });
+        setMessage({ type: 'success', text: 'Thêm bậc giá thành công!' });
         setShowCreateTier(false);
         handleSelectPrice(selectedPrice);
       }
@@ -149,7 +159,10 @@ export const ServiceCatalogPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Danh mục Dịch vụ & Thiết lập Giá</h1>
+          <div className="flex items-center gap-2">
+            <Boxes className="h-5 w-5 text-blue-600" />
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Danh mục Dịch vụ & Thiết lập Giá</h1>
+          </div>
           <p className="text-sm text-slate-500 mt-1">
             Quản lý các dịch vụ cổng thanh toán (SMS, vKYC...), thiết lập mức giá cơ sở và phân bậc (Tiered Pricing).
           </p>
@@ -160,15 +173,10 @@ export const ServiceCatalogPage: React.FC = () => {
       </div>
 
       {message && (
-        <div
-          className={`p-4 rounded-lg flex items-center gap-3 text-sm ${message.type === 'success'
-            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-            : 'bg-red-50 text-red-800 border border-red-200'
-            }`}
-        >
-          {message.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
-          <span>{message.text}</span>
-        </div>
+        <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
+          {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          <AlertDescription>{message.text}</AlertDescription>
+        </Alert>
       )}
 
       {/* Main Grid */}
@@ -189,8 +197,8 @@ export const ServiceCatalogPage: React.FC = () => {
                   key={svc.id}
                   onClick={() => handleSelectService(svc)}
                   className={`p-3 rounded-lg border cursor-pointer transition-all ${selectedService?.id === svc.id
-                    ? 'border-blue-600 bg-blue-50/50 ring-1 ring-blue-600'
-                    : 'border-slate-200 hover:bg-slate-50'
+                      ? 'border-blue-600 bg-blue-50/50 ring-1 ring-blue-600'
+                      : 'border-slate-200 hover:bg-slate-50'
                     }`}
                 >
                   <div className="flex items-center justify-between">
@@ -260,11 +268,9 @@ export const ServiceCatalogPage: React.FC = () => {
                               {pr.subsequentSize} units / {formatCurrency(pr.subsequentFee)}
                             </TableCell>
                             <TableCell>
-                              {pr.active ? (
-                                <Badge variant="success">Kích hoạt</Badge>
-                              ) : (
-                                <Badge variant="secondary">Chưa active</Badge>
-                              )}
+                              <Badge variant={pr.active ? 'success' : 'secondary'}>
+                                {pr.active ? 'Kích hoạt' : 'Chưa active'}
+                              </Badge>
                             </TableCell>
                             <TableCell className="flex items-center gap-2">
                               {!pr.active && (
@@ -338,182 +344,170 @@ export const ServiceCatalogPage: React.FC = () => {
         </Card>
       </div>
 
-      {/* Modal / Form section for Create Service */}
-      {showCreateService && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md bg-white shadow-xl">
-            <CardHeader>
-              <CardTitle>Tạo Dịch vụ Mới</CardTitle>
-              <CardDescription>Nhập thông tin dịch vụ cổng billing</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreateService} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Mã Dịch vụ (Code)</label>
-                  <Input
-                    required
-                    placeholder="e.g. SMS, VKYC"
-                    value={newService.code}
-                    onChange={(e) => setNewService({ ...newService, code: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tên Dịch vụ</label>
-                  <Input
-                    required
-                    placeholder="e.g. SMS OTP Service"
-                    value={newService.name}
-                    onChange={(e) => setNewService({ ...newService, name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Mô tả</label>
-                  <Input
-                    placeholder="Mô tả chi tiết..."
-                    value={newService.description}
-                    onChange={(e) => setNewService({ ...newService, description: e.target.value })}
-                  />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setShowCreateService(false)}>
-                    Hủy
-                  </Button>
-                  <Button type="submit">Lưu Dịch Vụ</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Create Service Dialog */}
+      <Dialog open={showCreateService} onOpenChange={setShowCreateService}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tạo Dịch vụ Mới</DialogTitle>
+            <DialogDescription>Nhập thông tin dịch vụ cổng billing</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateService} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Mã Dịch vụ (Code)</Label>
+              <Input
+                required
+                placeholder="e.g. SMS, VKYC"
+                value={newService.code}
+                onChange={(e) => setNewService({ ...newService, code: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Tên Dịch vụ</Label>
+              <Input
+                required
+                placeholder="e.g. SMS OTP Service"
+                value={newService.name}
+                onChange={(e) => setNewService({ ...newService, name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Mô tả</Label>
+              <Input
+                placeholder="Mô tả chi tiết..."
+                value={newService.description}
+                onChange={(e) => setNewService({ ...newService, description: e.target.value })}
+              />
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreateService(false)}>
+                Hủy
+              </Button>
+              <Button type="submit">Lưu Dịch Vụ</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Modal for Create Price */}
-      {showCreatePrice && selectedService && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md bg-white shadow-xl">
-            <CardHeader>
-              <CardTitle>Thêm Thiết lập Giá mới</CardTitle>
-              <CardDescription>Dịch vụ: {selectedService.name}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreatePrice} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Size</label>
-                    <Input
-                      type="number"
-                      required
-                      min={1}
-                      value={newPrice.initialSize}
-                      onChange={(e) => setNewPrice({ ...newPrice, initialSize: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Fee (VNĐ)</label>
-                    <Input
-                      type="number"
-                      required
-                      min={0}
-                      value={newPrice.initialFee}
-                      onChange={(e) => setNewPrice({ ...newPrice, initialFee: Number(e.target.value) })}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Subsequent Size</label>
-                    <Input
-                      type="number"
-                      required
-                      min={1}
-                      value={newPrice.subsequentSize}
-                      onChange={(e) => setNewPrice({ ...newPrice, subsequentSize: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Subsequent Fee (VNĐ)</label>
-                    <Input
-                      type="number"
-                      required
-                      min={0}
-                      value={newPrice.subsequentFee}
-                      onChange={(e) => setNewPrice({ ...newPrice, subsequentFee: Number(e.target.value) })}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setShowCreatePrice(false)}>
-                    Hủy
-                  </Button>
-                  <Button type="submit">Lưu Thiết Lập Giá</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Create Price Dialog */}
+      <Dialog open={showCreatePrice} onOpenChange={setShowCreatePrice}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Thêm Thiết lập Giá mới</DialogTitle>
+            <DialogDescription>Dịch vụ: {selectedService?.name}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreatePrice} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Initial Size</Label>
+                <Input
+                  type="number"
+                  required
+                  min={1}
+                  value={newPrice.initialSize}
+                  onChange={(e) => setNewPrice({ ...newPrice, initialSize: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Initial Fee (VNĐ)</Label>
+                <Input
+                  type="number"
+                  required
+                  min={0}
+                  value={newPrice.initialFee}
+                  onChange={(e) => setNewPrice({ ...newPrice, initialFee: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Subsequent Size</Label>
+                <Input
+                  type="number"
+                  required
+                  min={1}
+                  value={newPrice.subsequentSize}
+                  onChange={(e) => setNewPrice({ ...newPrice, subsequentSize: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Subsequent Fee (VNĐ)</Label>
+                <Input
+                  type="number"
+                  required
+                  min={0}
+                  value={newPrice.subsequentFee}
+                  onChange={(e) => setNewPrice({ ...newPrice, subsequentFee: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreatePrice(false)}>
+                Hủy
+              </Button>
+              <Button type="submit">Lưu Thiết Lập Giá</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
-      {/* Modal for Create Price Tier */}
-      {showCreateTier && selectedPrice && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md bg-white shadow-xl">
-            <CardHeader>
-              <CardTitle>Thêm Bậc Giá (Price Tier)</CardTitle>
-              <CardDescription>Mức giá ID: {selectedPrice.id.slice(0, 8)}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreateTier} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Tên Bậc Tier</label>
-                  <Input
-                    required
-                    placeholder="e.g. TIER_1, TIER_2"
-                    value={newTier.tier}
-                    onChange={(e) => setNewTier({ ...newTier, tier: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Basic Fee (VNĐ)</label>
-                  <Input
-                    type="number"
-                    required
-                    min={0}
-                    value={newTier.basicFee}
-                    onChange={(e) => setNewTier({ ...newTier, basicFee: Number(e.target.value) })}
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Extended Size</label>
-                    <Input
-                      type="number"
-                      required
-                      min={1}
-                      value={newTier.extendedSize}
-                      onChange={(e) => setNewTier({ ...newTier, extendedSize: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Extended Fee (VNĐ)</label>
-                    <Input
-                      type="number"
-                      required
-                      min={0}
-                      value={newTier.extendedFee}
-                      onChange={(e) => setNewTier({ ...newTier, extendedFee: Number(e.target.value) })}
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
-                  <Button type="button" variant="outline" onClick={() => setShowCreateTier(false)}>
-                    Hủy
-                  </Button>
-                  <Button type="submit">Lưu Bậc Giá</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {/* Create Tier Dialog */}
+      <Dialog open={showCreateTier} onOpenChange={setShowCreateTier}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Thêm Bậc Giá (Price Tier)</DialogTitle>
+            <DialogDescription>Mức giá ID: {selectedPrice?.id.slice(0, 8)}</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreateTier} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tên Bậc Tier</Label>
+              <Input
+                required
+                placeholder="e.g. TIER_1, TIER_2"
+                value={newTier.tier}
+                onChange={(e) => setNewTier({ ...newTier, tier: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Basic Fee (VNĐ)</Label>
+              <Input
+                type="number"
+                required
+                min={0}
+                value={newTier.basicFee}
+                onChange={(e) => setNewTier({ ...newTier, basicFee: Number(e.target.value) })}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Extended Size</Label>
+                <Input
+                  type="number"
+                  required
+                  min={1}
+                  value={newTier.extendedSize}
+                  onChange={(e) => setNewTier({ ...newTier, extendedSize: Number(e.target.value) })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Extended Fee (VNĐ)</Label>
+                <Input
+                  type="number"
+                  required
+                  min={0}
+                  value={newTier.extendedFee}
+                  onChange={(e) => setNewTier({ ...newTier, extendedFee: Number(e.target.value) })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreateTier(false)}>
+                Hủy
+              </Button>
+              <Button type="submit">Lưu Bậc Giá</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

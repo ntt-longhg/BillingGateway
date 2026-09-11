@@ -1,5 +1,7 @@
 package com.gateway.billing.config;
 
+import com.gateway.billing.modules.tenant.model.Tenant;
+import com.gateway.billing.modules.tenant.repository.TenantRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 
 @Configuration
 @EnableWebSecurity
@@ -30,6 +33,12 @@ public class SecurityConfig {
 
     @Value("${app.security.api-key.valid-keys}")
     private String validKeys;
+
+    private final TenantRepository tenantRepository;
+
+    public SecurityConfig(TenantRepository tenantRepository) {
+        this.tenantRepository = tenantRepository;
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -68,6 +77,7 @@ public class SecurityConfig {
                                             FilterChain filterChain) throws ServletException, IOException {
                 String path = request.getRequestURI();
 
+                // Skip auth for swagger, api-docs, actuator
                 if (path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs")
                         || path.startsWith("/actuator")) {
                     filterChain.doFilter(request, response);
@@ -75,14 +85,41 @@ public class SecurityConfig {
                 }
 
                 String apiKey = request.getHeader(apiKeyHeader);
-                if (apiKey == null || !validKeys.contains(apiKey)) {
+                if (apiKey == null || apiKey.isBlank()) {
                     response.setStatus(HttpStatus.UNAUTHORIZED.value());
                     response.setContentType("application/json");
                     response.getWriter().write("{\"success\":false,\"message\":\"Invalid or missing API key\"}");
                     return;
                 }
 
-                filterChain.doFilter(request, response);
+                // 1. Check admin API key
+                if (validKeys.contains(apiKey)) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
+                // 2. Check tenant API key format: "client_id:client_secret"
+                if (apiKey.contains(":")) {
+                    String[] parts = apiKey.split(":", 2);
+                    String clientId = parts[0];
+                    String clientSecret = parts[1];
+
+                    Optional<Tenant> tenantOpt = tenantRepository.findByClientId(clientId);
+                    if (tenantOpt.isPresent()) {
+                        Tenant tenant = tenantOpt.get();
+                        // Validate client_secret matches
+                        if (tenant.getClientSecret().equals(clientSecret)
+                                && tenant.getStatus() == com.gateway.billing.modules.tenant.model.TenantStatus.ACTIVE) {
+                            filterChain.doFilter(request, response);
+                            return;
+                        }
+                    }
+                }
+
+                // 3. Invalid API key
+                response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                response.setContentType("application/json");
+                response.getWriter().write("{\"success\":false,\"message\":\"Invalid or expired API key\"}");
             }
         };
     }

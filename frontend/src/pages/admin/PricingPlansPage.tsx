@@ -2,12 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { FileSpreadsheet, Plus, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { pricingPlanService } from '@/services/billingServices';
 import { PricingPlanResponse } from '@/types/api';
-import { formatCurrency } from '@/lib/utils';
+import { formatCurrency, getStatusConfig } from '@/lib/utils';
 
 export const PricingPlansPage: React.FC = () => {
   const [plans, setPlans] = useState<PricingPlanResponse[]>([]);
@@ -76,7 +87,10 @@ export const PricingPlansPage: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Cấu hình Bảng giá cho Tenant</h1>
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="h-5 w-5 text-blue-600" />
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Cấu hình Bảng giá cho Tenant</h1>
+          </div>
           <p className="text-sm text-slate-500 mt-1">
             Thiết lập gói cước trả trước/trả sau, tỷ lệ khuyến mãi (bonus) và cấu hình hạn mức tín dụng (credit limit).
           </p>
@@ -92,15 +106,10 @@ export const PricingPlansPage: React.FC = () => {
       </div>
 
       {message && (
-        <div
-          className={`p-4 rounded-lg flex items-center gap-3 text-sm ${message.type === 'success'
-            ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-            : 'bg-red-50 text-red-800 border border-red-200'
-            }`}
-        >
-          {message.type === 'success' ? <CheckCircle2 className="h-5 w-5" /> : <AlertCircle className="h-5 w-5" />}
-          <span>{message.text}</span>
-        </div>
+        <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
+          {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          <AlertDescription>{message.text}</AlertDescription>
+        </Alert>
       )}
 
       {/* Pricing Plans Table Card */}
@@ -122,190 +131,189 @@ export const PricingPlansPage: React.FC = () => {
                 <TableRow>
                   <TableHead>Mã Gói</TableHead>
                   <TableHead>Tên Bảng Giá</TableHead>
-                  <TableHead>Giá Gói (Price)</TableHead>
+                  <TableHead>Giá Gói</TableHead>
                   <TableHead>Loại Gói</TableHead>
-                  <TableHead>Khuyến Mãi (Bonus)</TableHead>
-                  <TableHead>Credit Limit Action</TableHead>
+                  <TableHead>Khuyến Mãi</TableHead>
+                  <TableHead>Credit Limit</TableHead>
                   <TableHead>Trạng Thái</TableHead>
                   <TableHead>Thao Tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {plans.map((plan) => (
-                  <TableRow key={plan.id}>
-                    <TableCell className="font-mono font-bold text-slate-800">{plan.code}</TableCell>
-                    <TableCell>
-                      <div className="font-medium text-slate-900">{plan.name}</div>
-                      {plan.description && <div className="text-xs text-slate-400">{plan.description}</div>}
-                    </TableCell>
-                    <TableCell className="font-semibold text-slate-900">{formatCurrency(plan.price)}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {plan.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {plan.bonusType === 'NONE' ? (
-                        <span className="text-slate-400">-</span>
-                      ) : plan.bonusType === 'PERCENTAGE' ? (
-                        <span className="text-emerald-600 font-medium">+{plan.bonusValue}%</span>
-                      ) : (
-                        <span className="text-emerald-600 font-medium">+{formatCurrency(plan.bonusValue || 0)}</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-xs">
-                      {plan.creditLimitAction} ({formatCurrency(plan.creditLimitValue)})
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={plan.status === 'ACTIVE' ? 'success' : 'secondary'}>
-                        {plan.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleToggleStatus(plan)}
-                        className="text-xs h-7"
-                      >
-                        {plan.status === 'ACTIVE' ? 'Tắt ACTIVE' : 'Kích hoạt'}
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {plans.map((plan) => {
+                  const statusConf = getStatusConfig(plan.status as any);
+                  return (
+                    <TableRow key={plan.id}>
+                      <TableCell className="font-mono font-bold text-slate-800">{plan.code}</TableCell>
+                      <TableCell>
+                        <div className="font-medium text-slate-900">{plan.name}</div>
+                        {plan.description && <div className="text-xs text-slate-400">{plan.description}</div>}
+                      </TableCell>
+                      <TableCell className="font-semibold text-slate-900">{formatCurrency(plan.price)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {plan.type === 'BALANCE_TOPUP' ? 'Nạp số dư' : 'Tăng hạn mức'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {plan.bonusType === 'NONE' ? (
+                          <span className="text-slate-400">-</span>
+                        ) : plan.bonusType === 'PERCENTAGE' ? (
+                          <span className="text-emerald-600 font-medium">+{plan.bonusValue}%</span>
+                        ) : (
+                          <span className="text-emerald-600 font-medium">+{formatCurrency(plan.bonusValue || 0)}</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        {plan.creditLimitAction} ({formatCurrency(plan.creditLimitValue)})
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={statusConf.variant}>
+                          {statusConf.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleToggleStatus(plan)}
+                          className="text-xs h-7"
+                        >
+                          {plan.status === 'ACTIVE' ? 'Tắt' : 'Kích hoạt'}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
         </CardContent>
       </Card>
 
-      {/* Modal for Create Pricing Plan */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-lg bg-white shadow-xl">
-            <CardHeader>
-              <CardTitle>Tạo Bảng giá Tenant Mới</CardTitle>
-              <CardDescription>Điền thông tin chi tiết bảng giá dịch vụ</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreatePlan} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Mã Bảng Giá (Code)</label>
-                    <Input
-                      required
-                      placeholder="e.g. TOPUP_100"
-                      value={formData.code}
-                      onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Tên Bảng Giá</label>
-                    <Input
-                      required
-                      placeholder="e.g. Topup 100K"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    />
-                  </div>
-                </div>
+      {/* Create Pricing Plan Dialog */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Tạo Bảng giá Tenant Mới</DialogTitle>
+            <DialogDescription>Điền thông tin chi tiết bảng giá dịch vụ</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleCreatePlan} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Mã Bảng Giá (Code)</Label>
+                <Input
+                  required
+                  placeholder="e.g. TOPUP_100"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Tên Bảng Giá</Label>
+                <Input
+                  required
+                  placeholder="e.g. Topup 100K"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+            </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Giá gói (VNĐ)</label>
-                  <Input
-                    type="number"
-                    required
-                    min={0}
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
-                  />
-                </div>
+            <div className="space-y-2">
+              <Label>Giá gói (VNĐ)</Label>
+              <Input
+                type="number"
+                required
+                min={0}
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
+              />
+            </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Loại Bảng Giá</label>
-                    <select
-                      className="w-full h-9 rounded-md border border-slate-300 px-3 text-sm bg-white"
-                      value={formData.type}
-                      onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                    >
-                      <option value="BALANCE_TOPUP">BALANCE_TOPUP</option>
-                      <option value="CREDIT_INCREASE">CREDIT_INCREASE</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Loại Khuyến Mãi (Bonus)</label>
-                    <select
-                      className="w-full h-9 rounded-md border border-slate-300 px-3 text-sm bg-white"
-                      value={formData.bonusType}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          bonusType: e.target.value as 'NONE' | 'PERCENTAGE' | 'FIXED',
-                        })
-                      }
-                    >
-                      <option value="NONE">NONE</option>
-                      <option value="PERCENTAGE">PERCENTAGE (%)</option>
-                      <option value="FIXED">FIXED (Số tiền)</option>
-                    </select>
-                  </div>
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Loại Bảng Giá</Label>
+                <Select
+                  value={formData.type}
+                  onValueChange={(value) => setFormData({ ...formData, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BALANCE_TOPUP">Nạp số dư (BALANCE_TOPUP)</SelectItem>
+                    <SelectItem value="CREDIT_INCREASE">Tăng hạn mức (CREDIT_INCREASE)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Loại Khuyến Mãi</Label>
+                <Select
+                  value={formData.bonusType}
+                  onValueChange={(value: 'NONE' | 'PERCENTAGE' | 'FIXED') => setFormData({ ...formData, bonusType: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">Không khuyến mãi</SelectItem>
+                    <SelectItem value="PERCENTAGE">Phần trăm (%)</SelectItem>
+                    <SelectItem value="FIXED">Số tiền cố định</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
 
-                {formData.bonusType !== 'NONE' && (
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Giá trị Khuyến Mãi ({formData.bonusType === 'PERCENTAGE' ? '%' : 'VNĐ'})
-                    </label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={formData.bonusValue}
-                      onChange={(e) => setFormData({ ...formData, bonusValue: Number(e.target.value) })}
-                    />
-                  </div>
-                )}
+            {formData.bonusType !== 'NONE' && (
+              <div className="space-y-2">
+                <Label>Giá trị Khuyến Mãi ({formData.bonusType === 'PERCENTAGE' ? '%' : 'VNĐ'})</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={formData.bonusValue}
+                  onChange={(e) => setFormData({ ...formData, bonusValue: Number(e.target.value) })}
+                />
+              </div>
+            )}
 
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Credit Limit Action</label>
-                    <select
-                      className="w-full h-9 rounded-md border border-slate-300 px-3 text-sm bg-white"
-                      value={formData.creditLimitAction}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          creditLimitAction: e.target.value as 'NONE' | 'SET' | 'INCREASE',
-                        })
-                      }
-                    >
-                      <option value="NONE">NONE</option>
-                      <option value="SET">SET (Thiết lập cố định)</option>
-                      <option value="INCREASE">INCREASE (Cộng dồn)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Giá trị Credit Limit</label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={formData.creditLimitValue}
-                      onChange={(e) => setFormData({ ...formData, creditLimitValue: Number(e.target.value) })}
-                    />
-                  </div>
-                </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Credit Limit Action</Label>
+                <Select
+                  value={formData.creditLimitAction}
+                  onValueChange={(value: 'NONE' | 'SET' | 'INCREASE') => setFormData({ ...formData, creditLimitAction: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">Không thay đổi</SelectItem>
+                    <SelectItem value="SET">Thiết lập cố định</SelectItem>
+                    <SelectItem value="INCREASE">Cộng dồn</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Giá trị Credit Limit</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={formData.creditLimitValue}
+                  onChange={(e) => setFormData({ ...formData, creditLimitValue: Number(e.target.value) })}
+                />
+              </div>
+            </div>
 
-                <div className="flex justify-end gap-2 pt-3">
-                  <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
-                    Hủy
-                  </Button>
-                  <Button type="submit">Tạo Bảng Giá</Button>
-                </div>
-              </form>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+                Hủy
+              </Button>
+              <Button type="submit">Tạo Bảng Giá</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
