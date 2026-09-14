@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.time.OffsetDateTime;
 
 @Service
 @Transactional
@@ -42,6 +43,7 @@ public class PricingPlanService {
                 .creditLimitAction(request.getCreditLimitAction())
                 .creditLimitValue(request.getCreditLimitValue())
                 .status(PricingPlanStatus.ACTIVE)
+                .createdAt(OffsetDateTime.now())
                 .build();
 
         var saved = pricingPlanRepository.save(plan);
@@ -78,13 +80,22 @@ public class PricingPlanService {
         var plan = pricingPlanRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PricingPlan", "id", id));
 
-        if (request.getName() != null) plan.setName(request.getName());
-        if (request.getDescription() != null) plan.setDescription(request.getDescription());
-        if (request.getPrice() != null) plan.setPrice(request.getPrice());
-        if (request.getBonusType() != null) plan.setBonusType(request.getBonusType());
-        if (request.getBonusValue() != null) plan.setBonusValue(request.getBonusValue());
-        if (request.getCreditLimitAction() != null) plan.setCreditLimitAction(request.getCreditLimitAction());
-        if (request.getCreditLimitValue() != null) plan.setCreditLimitValue(request.getCreditLimitValue());
+        if (request.getName() != null)
+            plan.setName(request.getName());
+        if (request.getDescription() != null)
+            plan.setDescription(request.getDescription());
+        if (request.getPrice() != null)
+            plan.setPrice(request.getPrice());
+        if (request.getBonusType() != null)
+            plan.setBonusType(request.getBonusType());
+        if (request.getBonusValue() != null)
+            plan.setBonusValue(request.getBonusValue());
+        if (request.getCreditLimitAction() != null)
+            plan.setCreditLimitAction(request.getCreditLimitAction());
+        if (request.getCreditLimitValue() != null)
+            plan.setCreditLimitValue(request.getCreditLimitValue());
+
+        plan.setUpdatedAt(OffsetDateTime.now());
 
         var saved = pricingPlanRepository.save(plan);
         return toResponse(saved);
@@ -94,6 +105,7 @@ public class PricingPlanService {
         var plan = pricingPlanRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("PricingPlan", "id", id));
         plan.setStatus(request.getStatus());
+        plan.setUpdatedAt(OffsetDateTime.now());
         var saved = pricingPlanRepository.save(plan);
         return toResponse(saved);
     }

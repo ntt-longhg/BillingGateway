@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.time.OffsetDateTime;
 
 @Service
 @Transactional
@@ -26,8 +27,8 @@ public class ServiceService {
     private final PriceTierRepository priceTierRepository;
 
     public ServiceService(ServiceRepository serviceRepository,
-                          ServicePriceRepository servicePriceRepository,
-                          PriceTierRepository priceTierRepository) {
+            ServicePriceRepository servicePriceRepository,
+            PriceTierRepository priceTierRepository) {
         this.serviceRepository = serviceRepository;
         this.servicePriceRepository = servicePriceRepository;
         this.priceTierRepository = priceTierRepository;
@@ -40,12 +41,13 @@ public class ServiceService {
             throw new BusinessException("DUPLICATE_CODE", "Service code already exists: " + request.getCode());
         }
 
-        com.gateway.billing.modules.servicecatalog.model.Service service =
-                com.gateway.billing.modules.servicecatalog.model.Service.builder()
-                        .code(request.getCode())
-                        .name(request.getName())
-                        .description(request.getDescription())
-                        .build();
+        com.gateway.billing.modules.servicecatalog.model.Service service = com.gateway.billing.modules.servicecatalog.model.Service
+                .builder()
+                .code(request.getCode())
+                .name(request.getName())
+                .description(request.getDescription())
+                .createdAt(OffsetDateTime.now())
+                .build();
 
         var saved = serviceRepository.save(service);
         return toServiceResponse(saved);
@@ -84,9 +86,13 @@ public class ServiceService {
             throw new BusinessException("DUPLICATE_CODE", "Service code already exists: " + request.getCode());
         }
 
-        if (request.getCode() != null) service.setCode(request.getCode());
-        if (request.getName() != null) service.setName(request.getName());
-        if (request.getDescription() != null) service.setDescription(request.getDescription());
+        if (request.getCode() != null)
+            service.setCode(request.getCode());
+        if (request.getName() != null)
+            service.setName(request.getName());
+        if (request.getDescription() != null)
+            service.setDescription(request.getDescription());
+        service.setUpdatedAt(OffsetDateTime.now());
 
         var saved = serviceRepository.save(service);
         return toServiceResponse(saved);
@@ -95,7 +101,7 @@ public class ServiceService {
     public void deleteService(UUID id) {
         var service = serviceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Service", "id", id));
-        service.setDeletedAt(java.time.OffsetDateTime.now());
+        service.setDeletedAt(OffsetDateTime.now());
         serviceRepository.save(service);
     }
 
@@ -113,6 +119,7 @@ public class ServiceService {
                 .subsequentFee(request.getSubsequentFee())
                 .isActive(true)
                 .effectiveDate(request.getEffectiveDate())
+                .createdAt(OffsetDateTime.now())
                 .build();
 
         var saved = servicePriceRepository.save(price);
@@ -148,11 +155,18 @@ public class ServiceService {
         var price = servicePriceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ServicePrice", "id", id));
 
-        if (request.getInitialSize() != null) price.setInitialSize(request.getInitialSize());
-        if (request.getInitialFee() != null) price.setInitialFee(request.getInitialFee());
-        if (request.getSubsequentSize() != null) price.setSubsequentSize(request.getSubsequentSize());
-        if (request.getSubsequentFee() != null) price.setSubsequentFee(request.getSubsequentFee());
-        if (request.getEffectiveDate() != null) price.setEffectiveDate(request.getEffectiveDate());
+        if (request.getInitialSize() != null)
+            price.setInitialSize(request.getInitialSize());
+        if (request.getInitialFee() != null)
+            price.setInitialFee(request.getInitialFee());
+        if (request.getSubsequentSize() != null)
+            price.setSubsequentSize(request.getSubsequentSize());
+        if (request.getSubsequentFee() != null)
+            price.setSubsequentFee(request.getSubsequentFee());
+        if (request.getEffectiveDate() != null)
+            price.setEffectiveDate(request.getEffectiveDate());
+
+        price.setUpdatedAt(OffsetDateTime.now());
 
         var saved = servicePriceRepository.save(price);
         return toPriceResponse(saved);
@@ -162,6 +176,7 @@ public class ServiceService {
         var price = servicePriceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("ServicePrice", "id", id));
         price.setIsActive(!Boolean.TRUE.equals(price.getIsActive()));
+        price.setUpdatedAt(OffsetDateTime.now());
         var saved = servicePriceRepository.save(price);
         return toPriceResponse(saved);
     }
@@ -196,9 +211,12 @@ public class ServiceService {
         var tier = priceTierRepository.findById(tierId)
                 .orElseThrow(() -> new ResourceNotFoundException("PriceTier", "id", tierId));
 
-        if (request.getBasicFee() != null) tier.setBasicFee(request.getBasicFee());
-        if (request.getExtendedSize() != null) tier.setExtendedSize(request.getExtendedSize());
-        if (request.getExtendedFee() != null) tier.setExtendedFee(request.getExtendedFee());
+        if (request.getBasicFee() != null)
+            tier.setBasicFee(request.getBasicFee());
+        if (request.getExtendedSize() != null)
+            tier.setExtendedSize(request.getExtendedSize());
+        if (request.getExtendedFee() != null)
+            tier.setExtendedFee(request.getExtendedFee());
 
         var saved = priceTierRepository.save(tier);
         return toTierResponse(saved);

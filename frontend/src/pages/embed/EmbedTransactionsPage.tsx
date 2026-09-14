@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { transactionService } from '@/services/billingServices';
+import { embedService } from '@/services/billingServices';
 import { TransactionResponse } from '@/types/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { ArrowDownLeft, ArrowUpRight, History, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
@@ -17,11 +17,11 @@ export const EmbedTransactionsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchTransactions = async () => {
+  const fetchTransactions = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await transactionService.getAll();
+      const res = await embedService.getTransactions();
       if (res.data.success && res.data?.data?.items) {
         setTransactions(res.data?.data?.items);
       } else {
@@ -33,7 +33,7 @@ export const EmbedTransactionsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -69,15 +69,14 @@ export const EmbedTransactionsPage: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
-            {['ALL', 'TOPUP', 'CHARGE', 'REFUND'].map((type) => (
+            {['ALL', 'DEPOSIT', 'CHARGE', 'REFUND'].map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${
-                  filterType === type
-                    ? 'bg-white text-blue-600 shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
+                className={`px-2.5 py-1 text-xs font-medium rounded-md transition-colors ${filterType === type
+                  ? 'bg-white text-blue-600 shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+                  }`}
               >
                 {type}
               </button>
@@ -124,7 +123,7 @@ export const EmbedTransactionsPage: React.FC = () => {
                   <TableRow key={txn.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {txn.type === 'TOPUP' ? (
+                        {txn.type === 'DEPOSIT' ? (
                           <div className="h-7 w-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
                             <ArrowDownLeft className="h-4 w-4" />
                           </div>
@@ -140,8 +139,8 @@ export const EmbedTransactionsPage: React.FC = () => {
                       </div>
                     </TableCell>
                     <TableCell className="font-semibold">
-                      <span className={txn.type === 'TOPUP' ? 'text-emerald-600' : 'text-slate-900'}>
-                        {txn.type === 'TOPUP' ? '+' : '-'}
+                      <span className={txn.type === 'DEPOSIT' ? 'text-emerald-600' : 'text-slate-900'}>
+                        {txn.type === 'DEPOSIT' ? '+' : '-'}
                         {formatCurrency(txn.amount)}
                       </span>
                     </TableCell>

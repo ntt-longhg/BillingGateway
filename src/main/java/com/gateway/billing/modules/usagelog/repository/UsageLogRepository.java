@@ -12,7 +12,7 @@ import java.util.UUID;
 @Repository
 public interface UsageLogRepository extends JpaRepository<UsageLog, UUID> {
 
-    @Query("SELECT ul FROM UsageLog ul JOIN FETCH ul.tenant JOIN FETCH ul.service WHERE (:cursor IS NULL OR ul.id > :cursor) AND (:tenantId IS NULL OR ul.tenant.id = :tenantId) AND (:serviceId IS NULL OR ul.service.id = :serviceId) ORDER BY ul.id ASC")
+    @Query("SELECT ul FROM UsageLog ul LEFT JOIN FETCH ul.tenant LEFT JOIN FETCH ul.service WHERE (:cursor IS NULL OR ul.id > :cursor) AND (:tenantId IS NULL OR ul.tenant.id = :tenantId) AND (:serviceId IS NULL OR ul.service.id = :serviceId) ORDER BY ul.id ASC")
     List<UsageLog> findWithCursor(@Param("cursor") UUID cursor,
                                   @Param("tenantId") UUID tenantId,
                                   @Param("serviceId") UUID serviceId,

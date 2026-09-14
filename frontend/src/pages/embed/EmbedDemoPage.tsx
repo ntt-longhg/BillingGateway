@@ -30,7 +30,7 @@ const demoPages = [
     icon: Wallet,
     color: 'text-blue-600',
     bgColor: 'bg-blue-50',
-    height: 500,
+    height: 600,
   },
   {
     path: '/embed/transactions',
@@ -38,7 +38,7 @@ const demoPages = [
     icon: History,
     color: 'text-emerald-600',
     bgColor: 'bg-emerald-50',
-    height: 500,
+    height: 600,
   },
   {
     path: '/embed/invoices',
@@ -46,7 +46,7 @@ const demoPages = [
     icon: FileText,
     color: 'text-indigo-600',
     bgColor: 'bg-indigo-50',
-    height: 500,
+    height: 600,
   },
   {
     path: '/embed/reports',
@@ -54,7 +54,7 @@ const demoPages = [
     icon: BarChart3,
     color: 'text-purple-600',
     bgColor: 'bg-purple-50',
-    height: 500,
+    height: 600,
   },
 ];
 
@@ -282,7 +282,7 @@ export const EmbedDemoPage: React.FC = () => {
               )}
             </CardHeader>
             <CardContent className="p-0">
-              <div className="border-t border-slate-200 relative">
+              <div className="border-t border-slate-200 relative overflow-y-auto" style={{ maxHeight: '80vh' }}>
                 {!isVerified ? (
                   <div className="flex flex-col items-center justify-center py-20 text-center bg-slate-50">
                     <div className="h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">

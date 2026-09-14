@@ -25,8 +25,4 @@ public class WalletCreateRequest {
     @NotNull(message = "Wallet type must not be null")
     @Schema(description = "Wallet type", example = "PREPAID")
     private com.gateway.billing.modules.wallet.model.WalletType type;
-
-    @PositiveOrZero(message = "Credit limit must be zero or positive")
-    @Schema(description = "Credit limit", example = "10000.00")
-    private BigDecimal creditLimit;
 }

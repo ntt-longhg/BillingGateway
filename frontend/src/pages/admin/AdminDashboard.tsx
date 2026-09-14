@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Wallet,
   LayoutDashboard,
+  ArrowDownLeft,
 } from 'lucide-react';
 import {
   tenantService,
@@ -204,12 +205,27 @@ export const AdminDashboard: React.FC = () => {
                         {txn.walletId.slice(0, 8)}...
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="font-mono">
-                          {txn.type}
-                        </Badge>
+                        <div className="flex items-center gap-2">
+                          {txn.type === 'DEPOSIT' ? (
+                            <div className="h-7 w-7 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                              <ArrowDownLeft className="h-4 w-4" />
+                            </div>
+                          ) : (
+                            <div className="h-7 w-7 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                              <ArrowUpRight className="h-4 w-4" />
+                            </div>
+                          )}
+                          <div>
+                            <span className="font-semibold text-slate-800 text-xs block">{txn.type}</span>
+                            {txn.description && <span className="text-[11px] text-slate-400">{txn.description}</span>}
+                          </div>
+                        </div>
                       </TableCell>
-                      <TableCell className="font-medium text-slate-900">
-                        {formatCurrency(txn.amount)}
+                      <TableCell className="font-semibold">
+                        <span className={txn.type === 'DEPOSIT' ? 'text-emerald-600' : 'text-slate-900'}>
+                          {txn.type === 'DEPOSIT' ? '+' : '-'}
+                          {formatCurrency(txn.amount)}
+                        </span>
                       </TableCell>
                       <TableCell>
                         <Badge variant={statusConf.variant}>

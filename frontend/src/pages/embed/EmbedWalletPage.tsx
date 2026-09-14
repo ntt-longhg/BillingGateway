@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { walletService, pricingPlanService, walletPlanService } from '@/services/billingServices';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { embedService } from '@/services/billingServices';
 import { WalletResponse, PricingPlanResponse } from '@/types/api';
 import { formatCurrency } from '@/lib/utils';
-import { Wallet, ArrowUpRight, Zap, RefreshCw, CreditCard } from 'lucide-react';
+import { Wallet, ArrowUpRight, Zap, RefreshCw, CreditCard, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export const EmbedWalletPage: React.FC = () => {
@@ -14,34 +16,27 @@ export const EmbedWalletPage: React.FC = () => {
   const [plans, setPlans] = useState<PricingPlanResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<PricingPlanResponse | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const fetchWalletData = async () => {
+  const fetchWalletData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [walletRes, plansRes] = await Promise.allSettled([
-        walletService.getAll(),
-        pricingPlanService.getAll(),
+        embedService.getWallet(),
+        embedService.getPricingPlans(),
       ]);
 
-      if (walletRes.status === 'fulfilled' && walletRes.value.data.data?.items?.[0]) {
-        setWallet(walletRes.value.data.data?.items?.[0]);
+      if (walletRes.status === 'fulfilled' && walletRes.value.data.data) {
+        setWallet(walletRes.value.data.data);
       } else {
         setError('Không thể tải thông tin ví. Vui lòng kiểm tra API Key.');
       }
-      if (plansRes.status === 'fulfilled' && plansRes.value.data.data?.items) {
-        // Filter plans based on wallet type
-        const allPlans = plansRes.value.data.data?.items?.filter((p) => p.status === 'ACTIVE') || [];
-        if (wallet) {
-          // Prepaid wallet: only show BALANCE_TOPUP plans
-          // Postpaid wallet: only show CREDIT_INCREASE plans
-          const filteredPlans = wallet.type === 'PREPAID'
-            ? allPlans.filter((p) => p.type === 'BALANCE_TOPUP')
-            : allPlans.filter((p) => p.type === 'CREDIT_INCREASE');
-          setPlans(filteredPlans);
-        } else {
-          setPlans(allPlans);
-        }
+      if (plansRes.status === 'fulfilled' && plansRes.value.data.data) {
+        setPlans(plansRes.value.data.data);
       }
     } catch (err) {
       console.error(err);
@@ -49,7 +44,7 @@ export const EmbedWalletPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -57,20 +52,32 @@ export const EmbedWalletPage: React.FC = () => {
     }
   }, [token]);
 
-  // Re-filter plans when wallet changes
-  useEffect(() => {
-    if (wallet) {
-      pricingPlanService.getAll().then((res) => {
-        if (res.data.success && res.data?.data?.items) {
-          const allPlans = res.data.data.items.filter((p) => p.status === 'ACTIVE');
-          const filteredPlans = wallet.type === 'PREPAID'
-            ? allPlans.filter((p) => p.type === 'BALANCE_TOPUP')
-            : allPlans.filter((p) => p.type === 'CREDIT_INCREASE');
-          setPlans(filteredPlans);
-        }
-      });
+  const handleSelectPlan = (plan: PricingPlanResponse) => {
+    setSelectedPlan(plan);
+    setConfirmOpen(true);
+    setSubmitResult(null);
+  };
+
+  const handleConfirmPurchase = async () => {
+    if (!selectedPlan) return;
+    setSubmitting(true);
+    setSubmitResult(null);
+    try {
+      const res = await embedService.createWalletPlan(selectedPlan.id);
+      if (res.data.success) {
+        setSubmitResult({ type: 'success', text: `Đã gửi yêu cầu mua gói "${selectedPlan.name}". Vui lòng chờ admin duyệt.` });
+        setConfirmOpen(false);
+        // Refresh wallet data after purchase
+        fetchWalletData();
+      } else {
+        setSubmitResult({ type: 'error', text: res.data.message || 'Mua gói thất bại.' });
+      }
+    } catch (err: any) {
+      setSubmitResult({ type: 'error', text: err.response?.data?.message || 'Lỗi kết nối đến server.' });
+    } finally {
+      setSubmitting(false);
     }
-  }, [wallet?.type]);
+  };
 
   if (error) {
     return (
@@ -89,6 +96,14 @@ export const EmbedWalletPage: React.FC = () => {
 
   return (
     <div className="space-y-5">
+      {/* Submit result */}
+      {submitResult && (
+        <Alert variant={submitResult.type === 'success' ? 'success' : 'destructive'}>
+          {submitResult.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+          <AlertDescription>{submitResult.text}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Top Banner Card */}
       <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-6 text-white shadow-md relative overflow-hidden">
         <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-10 pointer-events-none">
@@ -179,8 +194,12 @@ export const EmbedWalletPage: React.FC = () => {
                   </div>
                   <div className="text-lg font-bold text-slate-900">{formatCurrency(p.price)}</div>
                   <p className="text-xs text-slate-500">{p.description || 'Gói nạp ví tự động'}</p>
-                  <Button size="sm" className="w-full gap-1 text-xs">
-                    <ArrowUpRight className="h-3.5 w-3.5" /> Chọn gói này
+                  <Button
+                    size="sm"
+                    className="w-full gap-1 text-xs"
+                    onClick={() => handleSelectPlan(p)}
+                  >
+                    <ArrowUpRight className="h-3.5 w-3.5" /> Mua gói này
                   </Button>
                 </div>
               ))}
@@ -188,6 +207,62 @@ export const EmbedWalletPage: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Confirm Dialog */}
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xác nhận mua gói</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn mua gói <strong>{selectedPlan?.name}</strong>?
+            </DialogDescription>
+          </DialogHeader>
+          {selectedPlan && (
+            <div className="space-y-2 py-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Gói:</span>
+                <span className="font-medium text-slate-900">{selectedPlan.name}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Giá:</span>
+                <span className="font-medium text-slate-900">{formatCurrency(selectedPlan.price)}</span>
+              </div>
+              {selectedPlan.bonusType !== 'NONE' && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Thưởng:</span>
+                  <span className="font-medium text-emerald-600">
+                    {selectedPlan.bonusType === 'PERCENTAGE'
+                      ? `+${selectedPlan.bonusValue}%`
+                      : `+${formatCurrency(selectedPlan.bonusValue || 0)}`}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Loại ví:</span>
+                <span className="font-medium text-slate-900">
+                  {wallet?.type === 'PREPAID' ? 'Trả trước (nạp số dư)' : 'Trả sau (tăng hạn mức)'}
+                </span>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={submitting}>
+              Hủy
+            </Button>
+            <Button onClick={handleConfirmPurchase} disabled={submitting} className="gap-1.5">
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" /> Đang xử lý...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="h-4 w-4" /> Xác nhận mua
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

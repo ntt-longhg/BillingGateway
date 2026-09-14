@@ -28,7 +28,7 @@ spring:
     hibernate:
       ddl-auto: none  # Tắt Hibernate DDL - dùng schema.sql
     defer-datasource-initialization: true  # Chạy SQL script trước
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
@@ -65,7 +65,6 @@ spring:
 
 # Application custom config
 app:
-  security:
-    api-key:
-      header: X-API-Key
-      valid-keys: x-admin
+  mail:
+    host: smtp.gmail.com
+    port: 587

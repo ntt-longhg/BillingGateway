@@ -12,6 +12,7 @@ import { PricingPlansPage } from '../pages/admin/PricingPlansPage';
 import { PendingWalletPlansPage } from '../pages/admin/PendingWalletPlansPage';
 import { TenantManagementPage } from '../pages/admin/TenantManagementPage';
 import { WalletManagementPage } from '../pages/admin/WalletManagementPage';
+import { AdminSettingsPage } from '../pages/admin/AdminSettingsPage';
 
 import { EmbedWalletPage } from '../pages/embed/EmbedWalletPage';
 import { EmbedTransactionsPage } from '../pages/embed/EmbedTransactionsPage';
@@ -70,6 +71,7 @@ export const AppRoutes: React.FC = () => {
             <Route path="wallets" element={<WalletManagementPage />} />
             <Route path="docs/embed" element={<EmbedDocsPage />} />
             <Route path="demo" element={<EmbedDemoPage />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
           </Route>
 
           {/* ------------------------------------------------------------- */}

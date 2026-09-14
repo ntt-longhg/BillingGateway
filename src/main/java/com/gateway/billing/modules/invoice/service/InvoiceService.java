@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.time.OffsetDateTime;
 
 @Service
 @Transactional
@@ -26,8 +27,8 @@ public class InvoiceService {
     private final WalletRepository walletRepository;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
-                          TenantRepository tenantRepository,
-                          WalletRepository walletRepository) {
+            TenantRepository tenantRepository,
+            WalletRepository walletRepository) {
         this.invoiceRepository = invoiceRepository;
         this.tenantRepository = tenantRepository;
         this.walletRepository = walletRepository;
@@ -35,7 +36,8 @@ public class InvoiceService {
 
     public InvoiceResponse create(InvoiceCreateRequest request) {
         if (invoiceRepository.existsByTenantIdAndBillingPeriod(request.getTenantId(), request.getBillingPeriod())) {
-            throw new BusinessException("DUPLICATE_INVOICE", "Invoice already exists for tenant " + request.getTenantId() + " and period " + request.getBillingPeriod());
+            throw new BusinessException("DUPLICATE_INVOICE", "Invoice already exists for tenant "
+                    + request.getTenantId() + " and period " + request.getBillingPeriod());
         }
 
         var tenant = tenantRepository.findById(request.getTenantId())
@@ -51,6 +53,7 @@ public class InvoiceService {
                 .totalAmount(request.getTotalAmount())
                 .status(InvoiceStatus.ISSUED)
                 .dueDate(request.getDueDate())
+                .createdAt(OffsetDateTime.now())
                 .updatedBy(request.getUpdatedBy())
                 .build();
 
@@ -94,6 +97,7 @@ public class InvoiceService {
 
         invoice.setStatus(InvoiceStatus.PAID);
         invoice.setUpdatedBy(request.getUpdatedBy());
+        invoice.setUpdatedAt(OffsetDateTime.now());
 
         var saved = invoiceRepository.save(invoice);
         return toResponse(saved);

@@ -45,9 +45,9 @@ public class UsageLog {
     @JoinColumn(name = "tenant_id", nullable = false, comment = "Foreign key to tenants.id - tenant who used the service")
     private Tenant tenant;
 
-    /** Service that was used */
+    /** Service that was used (nullable for wallet plan topup) */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "service_id", nullable = false, comment = "Foreign key to services.id - service that was used")
+    @JoinColumn(name = "service_id", nullable = true, comment = "Foreign key to services.id - service that was used (NULL for wallet plan topup)")
     private Service service;
 
     /** Wallet type snapshot at time of usage (PREPAID/POSTPAID) */

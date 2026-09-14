@@ -14,6 +14,7 @@ import {
   LogOut,
   Code,
   Play,
+  Settings,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
@@ -23,20 +24,21 @@ import { useAuth } from '@/context/AuthContext';
 export const AdminLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { adminLogout } = useAuth();
+  const { adminLogout, adminEmail } = useAuth();
 
   const menuItems = [
     { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
-    { path: '/admin/services', label: 'Danh mục Dịch vụ', icon: Boxes },
+    { path: '/admin/services', label: 'Danh mục dịch vụ', icon: Boxes },
     { path: '/admin/pricing-plans', label: 'Bảng giá Tenant', icon: FileSpreadsheet },
-    { path: '/admin/wallets', label: 'Quản lý Ví', icon: Wallet },
+    { path: '/admin/wallets', label: 'Quản lý ví', icon: Wallet },
     { path: '/admin/wallet-plans/pending', label: 'Duyệt gói cước', icon: Clock, badge: 'Mới' },
     { path: '/admin/tenants', label: 'Quản lý Tenant', icon: Building2 },
   ];
 
   const toolItems = [
     { path: '/admin/docs/embed', label: 'Hướng dẫn nhúng', icon: Code },
-    { path: '/admin/demo', label: 'Demo iFrame', icon: Play },
+    { path: '/admin/demo', label: 'Thử nghiệm nhúng', icon: Play },
+    { path: '/admin/settings', label: 'Cấu hình hệ thống', icon: Settings },
   ];
 
   const handleLogout = () => {
@@ -175,7 +177,7 @@ export const AdminLayout: React.FC = () => {
               </div>
               <div className="text-sm">
                 <p className="font-medium text-slate-800 leading-tight">Administrator</p>
-                <p className="text-xs text-slate-500">admin@billinggateway.com</p>
+                <p className="text-xs text-slate-500">{adminEmail || 'admin@dntg.com.vn'}</p>
               </div>
             </div>
           </div>

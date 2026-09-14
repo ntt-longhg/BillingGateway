@@ -199,7 +199,7 @@ CREATE INDEX idx_wallet_plans_deleted_at ON wallet_plans(deleted_at);
 CREATE TABLE IF NOT EXISTS usage_logs (
     id CHAR(36) NOT NULL,
     tenant_id CHAR(36) NOT NULL,
-    service_id CHAR(36) NOT NULL,
+    service_id CHAR(36) NULL DEFAULT NULL,
     wallet_type_snapshot VARCHAR(10) NOT NULL DEFAULT 'PREPAID',
     total_usage INT NOT NULL,
     total_charged DECIMAL(15,2) NOT NULL DEFAULT 0.00,
@@ -242,3 +242,65 @@ CREATE INDEX idx_invoices_wallet_id ON invoices(wallet_id);
 CREATE INDEX idx_invoices_status ON invoices(status);
 CREATE INDEX idx_invoices_billing_period ON invoices(billing_period);
 CREATE INDEX idx_invoices_due_date ON invoices(due_date);
+
+-- =============================================
+-- 12. System Configs (no FK dependencies)
+-- Stores key-value configuration for the system (SMTP, OTP, AUTH settings)
+-- =============================================
+CREATE TABLE IF NOT EXISTS system_configs (
+    id CHAR(36) NOT NULL,
+    config_key VARCHAR(100) NOT NULL,
+    config_value TEXT NOT NULL,
+    config_group VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_system_configs_key (config_key),
+    INDEX idx_system_configs_group (config_group)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Default system configs
+INSERT IGNORE INTO system_configs (id, config_key, config_value, config_group, description) VALUES
+('00000000-0000-0000-0000-000000000001', 'smtp.host', 'smtp.gmail.com', 'SMTP', 'SMTP server host'),
+('00000000-0000-0000-0000-000000000002', 'smtp.port', '587', 'SMTP', 'SMTP server port'),
+('00000000-0000-0000-0000-000000000003', 'smtp.username', '', 'SMTP', 'SMTP username for authentication'),
+('00000000-0000-0000-0000-000000000004', 'smtp.password', '', 'SMTP', 'SMTP password for authentication'),
+('00000000-0000-0000-0000-000000000005', 'smtp.from-email', '', 'SMTP', 'Sender email address'),
+('00000000-0000-0000-0000-000000000006', 'otp.expiry_minutes', '5', 'OTP', 'OTP expiry time in minutes'),
+('00000000-0000-0000-0000-000000000007', 'otp.length', '6', 'OTP', 'OTP code length'),
+('00000000-0000-0000-0000-000000000008', 'auth.allowed_domains', 'dntg.com.vn', 'AUTH', 'Comma-separated allowed email domains'),
+('00000000-0000-0000-0000-000000000009', 'auth.token_expiry_hours', '24', 'AUTH', 'Admin session token expiry in hours');
+
+-- =============================================
+-- 13. Admin OTPs (no FK dependencies)
+-- Stores temporary OTP codes for admin email verification
+-- =============================================
+CREATE TABLE IF NOT EXISTS admin_otps (
+    id CHAR(36) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    otp_code VARCHAR(10) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    used TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    INDEX idx_admin_otps_email (email),
+    INDEX idx_admin_otps_expires_at (expires_at),
+    INDEX idx_admin_otps_email_used (email, used)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- 14. Admin Tokens (no FK dependencies)
+-- Stores active admin session tokens (UUID) for API authentication
+-- =============================================
+CREATE TABLE IF NOT EXISTS admin_tokens (
+    id CHAR(36) NOT NULL,
+    token VARCHAR(36) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_admin_tokens_token (token),
+    INDEX idx_admin_tokens_email (email),
+    INDEX idx_admin_tokens_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

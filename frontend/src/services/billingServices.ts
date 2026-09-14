@@ -34,6 +34,9 @@ import {
   UsageLogCreateRequest,
   CreditAdjustmentResponse,
   CreditAdjustmentCreateRequest,
+  AuthResponse,
+  SystemConfigResponse,
+  SystemConfigUpdateRequest,
 } from '@/types/api';
 
 // 1. Service Catalog Service
@@ -140,4 +143,38 @@ export const creditAdjustmentService = {
     api.post<ApiResponse<CreditAdjustmentResponse>>('/credit-adjustments', data),
   getAll: () => api.get<ApiResponse<PaginatedResponse<CreditAdjustmentResponse>>>('/credit-adjustments'),
   getById: (id: string) => api.get<ApiResponse<CreditAdjustmentResponse>>(`/credit-adjustments/${id}`),
+};
+
+// 10. Auth Service (OTP-based admin login)
+export const authService = {
+  sendOtp: (email: string) =>
+    api.post<ApiResponse<{ email: string; message: string }>>('/auth/otp/send', { email }),
+  verifyOtp: (email: string, otp: string) =>
+    api.post<ApiResponse<AuthResponse>>('/auth/otp/verify', { email, otp }),
+  logout: () =>
+    api.post<ApiResponse<null>>('/auth/logout'),
+};
+
+// 11. System Config Service
+export const systemConfigService = {
+  getAll: (group?: string) =>
+    api.get<ApiResponse<SystemConfigResponse[]>>('/system-configs', { params: group ? { group } : {} }),
+  update: (configs: SystemConfigUpdateRequest[]) =>
+    api.put<ApiResponse<null>>('/system-configs', { configs }),
+};
+
+// 12. Embed Service (tenant-scoped endpoints for embedded views)
+export const embedService = {
+  getWallet: () => api.get<ApiResponse<WalletResponse>>('/embed/wallet'),
+  getTransactions: () =>
+    api.get<ApiResponse<PaginatedResponse<TransactionResponse>>>('/embed/transactions'),
+  getInvoices: () =>
+    api.get<ApiResponse<PaginatedResponse<InvoiceResponse>>>('/embed/invoices'),
+  getUsageLogs: () =>
+    api.get<ApiResponse<PaginatedResponse<UsageLogResponse>>>('/embed/usage-logs'),
+  getCreditAdjustments: () =>
+    api.get<ApiResponse<PaginatedResponse<CreditAdjustmentResponse>>>('/embed/credit-adjustments'),
+  getPricingPlans: () => api.get<ApiResponse<PricingPlanResponse[]>>('/embed/pricing-plans'),
+  createWalletPlan: (pricingPlanId: string) =>
+    api.post<ApiResponse<WalletPlanResponse>>('/embed/wallet-plans', pricingPlanId),
 };

@@ -345,3 +345,34 @@ export interface CreditAdjustmentCreateRequest {
   referenceId: string;    // Required, NotBlank (e.g. "CA-12345")
   createdBy: string;      // Required, NotBlank (e.g. "admin")
 }
+
+// 11. Auth Module DTOs
+export interface SendOtpRequest {
+  email: string;          // Required, valid email format
+}
+
+export interface VerifyOtpRequest {
+  email: string;          // Required, valid email format
+  otp: string;            // Required, 6 digits
+}
+
+export interface AuthResponse {
+  token: string;          // Admin session token (UUID)
+  email: string;          // Admin email
+  expiresInHours: number; // Token expiry in hours
+}
+
+// 12. System Config Module DTOs
+export interface SystemConfigResponse {
+  id: string;
+  key: string;
+  value: string;
+  group: string;
+  description?: string;
+  updatedAt: string;
+}
+
+export interface SystemConfigUpdateRequest {
+  key: string;
+  value: string;
+}

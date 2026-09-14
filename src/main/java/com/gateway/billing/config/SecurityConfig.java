@@ -1,12 +1,12 @@
 package com.gateway.billing.config;
 
+import com.gateway.billing.modules.auth.service.AuthService;
 import com.gateway.billing.modules.tenant.model.Tenant;
 import com.gateway.billing.modules.tenant.repository.TenantRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
@@ -28,16 +28,14 @@ import java.util.Optional;
 @EnableWebSecurity
 public class SecurityConfig {
 
-    @Value("${app.security.api-key.header:X-API-Key}")
-    private String apiKeyHeader;
-
-    @Value("${app.security.api-key.valid-keys}")
-    private String validKeys;
+    private static final String API_KEY_HEADER = "X-API-Key";
 
     private final TenantRepository tenantRepository;
+    private final AuthService authService;
 
-    public SecurityConfig(TenantRepository tenantRepository) {
+    public SecurityConfig(TenantRepository tenantRepository, AuthService authService) {
         this.tenantRepository = tenantRepository;
+        this.authService = authService;
     }
 
     @Bean
@@ -49,8 +47,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
-                        .anyRequest().permitAll()
-                )
+                        .anyRequest().permitAll())
                 .addFilterBefore(apiKeyFilter(), UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -73,8 +70,8 @@ public class SecurityConfig {
         return new OncePerRequestFilter() {
             @Override
             protected void doFilterInternal(HttpServletRequest request,
-                                            HttpServletResponse response,
-                                            FilterChain filterChain) throws ServletException, IOException {
+                    HttpServletResponse response,
+                    FilterChain filterChain) throws ServletException, IOException {
                 String path = request.getRequestURI();
 
                 // Skip auth for swagger, api-docs, actuator
@@ -84,7 +81,13 @@ public class SecurityConfig {
                     return;
                 }
 
-                String apiKey = request.getHeader(apiKeyHeader);
+                // Skip auth for public OTP endpoints (send + verify only)
+                if (path.startsWith("/api/v1/auth/otp/")) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
+                String apiKey = request.getHeader(API_KEY_HEADER);
                 if (apiKey == null || apiKey.isBlank()) {
                     response.setStatus(HttpStatus.UNAUTHORIZED.value());
                     response.setContentType("application/json");
@@ -92,13 +95,13 @@ public class SecurityConfig {
                     return;
                 }
 
-                // 1. Check admin API key
-                if (validKeys.contains(apiKey)) {
+                // 1. Check admin session token (UUID format from OTP login)
+                if (authService.isValidAdminToken(apiKey)) {
                     filterChain.doFilter(request, response);
                     return;
                 }
 
-                // 2. Check tenant API key format: "client_id:client_secret"
+                // 2. Check tenant API key format: "client_id:client_secret" (EMBED - unchanged)
                 if (apiKey.contains(":")) {
                     String[] parts = apiKey.split(":", 2);
                     String clientId = parts[0];

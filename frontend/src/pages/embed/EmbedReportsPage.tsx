@@ -1,10 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { usageLogService, creditAdjustmentService } from '@/services/billingServices';
+import { embedService } from '@/services/billingServices';
 import { UsageLogResponse, CreditAdjustmentResponse, PaginatedResponse } from '@/types/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { BarChart3, Activity, ShieldCheck, RefreshCw, Layers, Loader2, AlertCircle } from 'lucide-react';
@@ -17,13 +17,13 @@ export const EmbedReportsPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchReportsData = async () => {
+  const fetchReportsData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const [logsRes, adjRes] = await Promise.allSettled([
-        usageLogService.getAll(),
-        creditAdjustmentService.getAll(),
+        embedService.getUsageLogs(),
+        embedService.getCreditAdjustments(),
       ]);
 
       if (logsRes.status === 'fulfilled' && logsRes.value.data.data) {
@@ -50,7 +50,7 @@ export const EmbedReportsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -159,7 +159,7 @@ export const EmbedReportsPage: React.FC = () => {
                       <TableRow key={log.id}>
                         <TableCell>
                           <Badge variant="outline" className="font-mono">
-                            {log.serviceCode}
+                            {log.serviceCode || 'N/A'}
                           </Badge>
                         </TableCell>
                         <TableCell className="font-semibold text-slate-900">

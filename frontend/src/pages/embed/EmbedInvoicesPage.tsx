@@ -1,14 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import React, { useEffect, useState, useCallback } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { invoiceService } from '@/services/billingServices';
+import { embedService } from '@/services/billingServices';
 import { InvoiceResponse } from '@/types/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import { FileText, CheckCircle2, AlertCircle, CreditCard, RefreshCw, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { api } from '@/api/api';
 
 export const EmbedInvoicesPage: React.FC = () => {
   const { token } = useAuth();
@@ -17,11 +18,11 @@ export const EmbedInvoicesPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await invoiceService.getAll();
+      const res = await embedService.getInvoices();
       if (res.data.success && res.data?.data?.items) {
         setInvoices(res.data?.data?.items);
       } else {
@@ -33,7 +34,7 @@ export const EmbedInvoicesPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (token) {
@@ -43,7 +44,7 @@ export const EmbedInvoicesPage: React.FC = () => {
 
   const handlePay = async (invoiceId: string) => {
     try {
-      const res = await invoiceService.pay(invoiceId, { updatedBy: 'client' });
+      const res = await api.patch(`/invoices/${invoiceId}/pay`, { updatedBy: 'client' });
       if (res.data.success) {
         setMessage({ type: 'success', text: 'Thanh toán hóa đơn thành công!' });
         fetchInvoices();

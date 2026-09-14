@@ -37,7 +37,7 @@ public class TenantService {
                 .clientSecret(request.getClientSecret())
                 .allowedDomains(request.getAllowedDomains())
                 .status(TenantStatus.ACTIVE)
-                .createdAt(java.time.OffsetDateTime.now())
+                .createdAt(OffsetDateTime.now())
                 .build();
 
         Tenant saved = tenantRepository.save(tenant);
@@ -78,11 +78,15 @@ public class TenantService {
             throw new BusinessException("DUPLICATE_CLIENT_ID", "Client ID already exists: " + request.getClientId());
         }
 
-        if (request.getName() != null) tenant.setName(request.getName());
-        if (request.getClientId() != null) tenant.setClientId(request.getClientId());
-        if (request.getClientSecret() != null) tenant.setClientSecret(request.getClientSecret());
-        if (request.getAllowedDomains() != null) tenant.setAllowedDomains(request.getAllowedDomains());
-        tenant.setUpdatedAt(java.time.OffsetDateTime.now());
+        if (request.getName() != null)
+            tenant.setName(request.getName());
+        if (request.getClientId() != null)
+            tenant.setClientId(request.getClientId());
+        if (request.getClientSecret() != null)
+            tenant.setClientSecret(request.getClientSecret());
+        if (request.getAllowedDomains() != null)
+            tenant.setAllowedDomains(request.getAllowedDomains());
+        tenant.setUpdatedAt(OffsetDateTime.now());
         Tenant saved = tenantRepository.save(tenant);
         return toResponse(saved);
     }
@@ -91,7 +95,7 @@ public class TenantService {
         Tenant tenant = tenantRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", id));
         tenant.setStatus(request.getStatus());
-        tenant.setUpdatedAt(java.time.OffsetDateTime.now());
+        tenant.setUpdatedAt(OffsetDateTime.now());
         Tenant saved = tenantRepository.save(tenant);
         return toResponse(saved);
     }
@@ -99,7 +103,7 @@ public class TenantService {
     public void delete(UUID id) {
         Tenant tenant = tenantRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", id));
-        tenant.setDeletedAt(java.time.OffsetDateTime.now());
+        tenant.setDeletedAt(OffsetDateTime.now());
         tenantRepository.save(tenant);
     }
 

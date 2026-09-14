@@ -18,8 +18,8 @@ export const setApiToken = (token: string | null) => {
 // Axios Request Interceptor: Tự động gắn X-API-Key vào header
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Nếu token chưa có trong memory, thử lấy từ localStorage hoặc URL
-    const token = currentToken || localStorage.getItem('X_API_KEY');
+    // Admin session token has priority
+    const token = currentToken || localStorage.getItem('ADMIN_SESSION_TOKEN') || localStorage.getItem('X_API_KEY');
     if (token) {
       config.headers['X-API-Key'] = token;
     }

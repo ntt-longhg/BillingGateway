@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -19,5 +20,9 @@ public interface WalletPlanRepository extends JpaRepository<WalletPlan, UUID> {
                                     @Param("status") WalletPlanStatus status,
                                     org.springframework.data.domain.Pageable pageable);
 
-    List<WalletPlan> findByStatusOrderByCreatedAtAsc(WalletPlanStatus status);
+    @Query("SELECT wp FROM WalletPlan wp JOIN FETCH wp.pricingPlan JOIN FETCH wp.tenant WHERE wp.id = :id")
+    Optional<WalletPlan> findByIdWithRelations(@Param("id") UUID id);
+
+    @Query("SELECT wp FROM WalletPlan wp JOIN FETCH wp.pricingPlan JOIN FETCH wp.tenant WHERE wp.status = :status AND wp.deletedAt IS NULL ORDER BY wp.createdAt ASC")
+    List<WalletPlan> findByStatusOrderByCreatedAtAsc(@Param("status") WalletPlanStatus status);
 }

@@ -102,6 +102,7 @@ export const PendingWalletPlansPage: React.FC = () => {
                   <TableHead>Giá</TableHead>
                   <TableHead>Số tiền nạp</TableHead>
                   <TableHead>Dư trước &rarr; sau</TableHead>
+                  <TableHead>Hạn mức trước &rarr; sau</TableHead>
                   <TableHead>Trạng thái</TableHead>
                   <TableHead>Thời gian</TableHead>
                   <TableHead>Thao tác</TableHead>
@@ -121,6 +122,10 @@ export const PendingWalletPlansPage: React.FC = () => {
                     <TableCell className="text-sm">
                       {formatCurrency(wp.balanceBefore)} &rarr;{' '}
                       <span className="font-semibold text-slate-800">{formatCurrency(wp.balanceAfter)}</span>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {formatCurrency(wp.creditLimitBefore)} &rarr;{' '}
+                      <span className="font-semibold text-slate-800">{formatCurrency(wp.creditLimitAfter)}</span>
                     </TableCell>
                     <TableCell>
                       <Badge variant="warning">{wp.status}</Badge>

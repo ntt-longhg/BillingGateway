@@ -44,4 +44,13 @@ public class MessageProducer {
                 payload
         );
     }
+
+    public void publishBillingCompleted(Map<String, Object> payload) {
+        log.info("Publishing billing.completed event: transactionId={}", payload.get("transactionId"));
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.EXCHANGE_BILLING,
+                RabbitMQConfig.RK_BILLING_COMPLETED,
+                payload
+        );
+    }
 }
