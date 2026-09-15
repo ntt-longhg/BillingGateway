@@ -1,5 +1,6 @@
 package com.gateway.walletcentral.modules.invoice.controller;
 
+import com.gateway.walletcentral.core.annotation.RequirePermission;
 import com.gateway.walletcentral.core.cursor.CursorPage;
 import com.gateway.walletcentral.core.cursor.CursorParams;
 import com.gateway.walletcentral.core.response.ApiResponse;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -27,6 +29,7 @@ public class InvoiceController {
     }
 
     @PostMapping
+    @RequirePermission("INVOICE_CREATE")
     @Operation(summary = "Create a new invoice")
     public ResponseEntity<ApiResponse<InvoiceResponse>> create(@Valid @RequestBody InvoiceCreateRequest request) {
         InvoiceResponse response = invoiceService.create(request);
@@ -35,6 +38,7 @@ public class InvoiceController {
     }
 
     @GetMapping
+    @RequirePermission("INVOICE_VIEW")
     @Operation(summary = "List invoices with cursor pagination")
     public ResponseEntity<ApiResponse<CursorPage<InvoiceResponse>>> list(
             @RequestParam(required = false) UUID tenantId,
@@ -45,6 +49,7 @@ public class InvoiceController {
     }
 
     @GetMapping("/{id}")
+    @RequirePermission("INVOICE_VIEW")
     @Operation(summary = "Get invoice by ID")
     public ResponseEntity<ApiResponse<InvoiceResponse>> getById(@PathVariable UUID id) {
         InvoiceResponse response = invoiceService.getById(id);
@@ -52,11 +57,40 @@ public class InvoiceController {
     }
 
     @PatchMapping("/{id}/pay")
+    @RequirePermission("INVOICE_PAY")
     @Operation(summary = "Mark invoice as paid")
     public ResponseEntity<ApiResponse<InvoiceResponse>> markAsPaid(
             @PathVariable UUID id,
             @Valid @RequestBody InvoicePayRequest request) {
         InvoiceResponse response = invoiceService.markAsPaid(id, request);
         return ResponseEntity.ok(ApiResponse.ok(response, "Invoice marked as paid"));
+    }
+
+    @PostMapping("/generate")
+    @RequirePermission("INVOICE_GENERATE")
+    @Operation(summary = "Generate invoice from usage logs (manual trigger)")
+    public ResponseEntity<ApiResponse<InvoiceResponse>> generate(
+            @Valid @RequestBody InvoiceGenerateRequest request) {
+        InvoiceResponse response = invoiceService.generateInvoice(
+                request.getTenantId(),
+                request.getEffectiveBillingPeriod(),
+                request.getUpdatedBy()
+        );
+        return ResponseEntity.ok(ApiResponse.ok(response, "Invoice generated successfully"));
+    }
+
+    @PostMapping("/generate-all")
+    @RequirePermission("INVOICE_GENERATE")
+    @Operation(summary = "Generate invoices for all active tenants for a billing period")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> generateAll(
+            @RequestParam(required = false) String billingPeriod,
+            @RequestParam(defaultValue = "admin") String updatedBy) {
+        String period = billingPeriod != null ? billingPeriod :
+                java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM"));
+        int count = invoiceService.generateAllInvoicesForPeriod(period, updatedBy);
+        return ResponseEntity.ok(ApiResponse.ok(
+                Map.of("generatedCount", count, "billingPeriod", period),
+                "Invoices generated successfully"
+        ));
     }
 }

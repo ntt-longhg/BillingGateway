@@ -20,4 +20,6 @@ public interface CreditAdjustmentRepository extends JpaRepository<CreditAdjustme
                                           org.springframework.data.domain.Pageable pageable);
 
     List<CreditAdjustment> findByWalletIdOrderByCreatedAtDesc(UUID walletId);
+
+    boolean existsByWalletIdAndReferenceId(UUID walletId, String referenceId);
 }

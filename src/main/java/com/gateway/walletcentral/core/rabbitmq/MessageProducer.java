@@ -53,4 +53,13 @@ public class MessageProducer {
                 payload
         );
     }
+
+    public void publishNotificationCreated(Map<String, Object> payload) {
+        log.info("Publishing notification.created event: tenantId={} type={}", payload.get("tenantId"), payload.get("type"));
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.EXCHANGE_NOTIFICATION,
+                RabbitMQConfig.RK_NOTIFICATION_CREATED,
+                payload
+        );
+    }
 }

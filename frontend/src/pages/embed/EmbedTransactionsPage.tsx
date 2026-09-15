@@ -3,15 +3,16 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import { embedService } from '@/services/billingServices';
 import { TransactionResponse } from '@/types/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { ArrowDownLeft, ArrowUpRight, History, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, History, RefreshCw, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export const EmbedTransactionsPage: React.FC = () => {
   const { token } = useAuth();
+  const { addToast } = useToast();
   const [transactions, setTransactions] = useState<TransactionResponse[]>([]);
   const [filterType, setFilterType] = useState<string>('ALL');
   const [loading, setLoading] = useState(false);
@@ -40,6 +41,12 @@ export const EmbedTransactionsPage: React.FC = () => {
       fetchTransactions();
     }
   }, [token]);
+
+  useEffect(() => {
+    if (error) {
+      addToast({ variant: 'destructive', message: error });
+    }
+  }, [error]);
 
   const filteredTxns = transactions.filter((t) => {
     if (filterType === 'ALL') return true;
@@ -87,13 +94,6 @@ export const EmbedTransactionsPage: React.FC = () => {
           </Button>
         </div>
       </div>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
 
       <Card className="border-slate-200 shadow-sm">
         <CardContent className="p-0">

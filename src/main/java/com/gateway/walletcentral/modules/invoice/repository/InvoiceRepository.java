@@ -23,4 +23,8 @@ public interface InvoiceRepository extends JpaRepository<Invoice, UUID> {
                                  @Param("tenantId") UUID tenantId,
                                  @Param("status") InvoiceStatus status,
                                  org.springframework.data.domain.Pageable pageable);
+
+    @Query("SELECT i FROM Invoice i JOIN FETCH i.tenant JOIN FETCH i.wallet WHERE i.createdAt >= :startOfMonth AND i.createdAt < :startOfNextMonth")
+    List<Invoice> findCurrentMonthInvoices(@Param("startOfMonth") java.time.OffsetDateTime startOfMonth,
+                                           @Param("startOfNextMonth") java.time.OffsetDateTime startOfNextMonth);
 }

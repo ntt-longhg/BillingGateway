@@ -37,6 +37,13 @@ import {
   AuthResponse,
   SystemConfigResponse,
   SystemConfigUpdateRequest,
+  RoleResponse,
+  RoleCreateRequest,
+  RoleUpdateRequest,
+  PermissionResponse,
+  AdminUserResponse,
+  UserInfoResponse,
+  NotificationResponse,
 } from '@/types/api';
 
 // 1. Service Catalog Service
@@ -128,6 +135,12 @@ export const invoiceService = {
   getById: (id: string) => api.get<ApiResponse<InvoiceResponse>>(`/invoices/${id}`),
   pay: (id: string, data: InvoicePayRequest) =>
     api.patch<ApiResponse<InvoiceResponse>>(`/invoices/${id}/pay`, data),
+  generate: (data: { tenantId: string; billingPeriod?: string; updatedBy: string }) =>
+    api.post<ApiResponse<InvoiceResponse>>('/invoices/generate', data),
+  generateAll: (billingPeriod?: string, updatedBy?: string) =>
+    api.post<ApiResponse<{ generatedCount: number; billingPeriod: string }>>('/invoices/generate-all', null, {
+      params: { billingPeriod, updatedBy },
+    }),
 };
 
 // 8. Usage Log Service
@@ -165,6 +178,7 @@ export const systemConfigService = {
 
 // 12. Embed Service (tenant-scoped endpoints for embedded views)
 export const embedService = {
+  getTenantInfo: () => api.get<ApiResponse<{ tenantId: string; name: string }>>('/embed/tenant-info'),
   getWallet: () => api.get<ApiResponse<WalletResponse>>('/embed/wallet'),
   getTransactions: () =>
     api.get<ApiResponse<PaginatedResponse<TransactionResponse>>>('/embed/transactions'),
@@ -177,4 +191,54 @@ export const embedService = {
   getPricingPlans: () => api.get<ApiResponse<PricingPlanResponse[]>>('/embed/pricing-plans'),
   createWalletPlan: (pricingPlanId: string) =>
     api.post<ApiResponse<WalletPlanResponse>>('/embed/wallet-plans', pricingPlanId),
+};
+
+// 13. RBAC Service (admin only)
+export const rbacService = {
+  // Users
+  getUsers: () =>
+    api.get<ApiResponse<AdminUserResponse[]>>('/rbac/users'),
+  getUserInfo: (email: string) =>
+    api.get<ApiResponse<UserInfoResponse>>(`/rbac/users/${encodeURIComponent(email)}/info`),
+
+  // Roles
+  getRoles: (cursor?: string) =>
+    api.get<ApiResponse<PaginatedResponse<RoleResponse>>>('/rbac/roles', { params: { cursor } }),
+  getRoleById: (id: string) => api.get<ApiResponse<RoleResponse>>(`/rbac/roles/${id}`),
+  createRole: (data: RoleCreateRequest) => api.post<ApiResponse<RoleResponse>>('/rbac/roles', data),
+  updateRole: (id: string, data: RoleUpdateRequest) =>
+    api.put<ApiResponse<RoleResponse>>(`/rbac/roles/${id}`, data),
+  deleteRole: (id: string) => api.delete<ApiResponse<void>>(`/rbac/roles/${id}`),
+
+  // Permissions
+  getPermissions: (module?: string) =>
+    api.get<ApiResponse<PermissionResponse[]>>('/rbac/permissions', { params: { module } }),
+
+  // User role assignment (by email)
+  assignRole: (email: string, roleId: string) =>
+    api.post<ApiResponse<void>>(`/rbac/users/${encodeURIComponent(email)}/role`, { roleId }),
+  removeRole: (email: string) =>
+    api.delete<ApiResponse<void>>(`/rbac/users/${encodeURIComponent(email)}/role`),
+
+  // User permission overrides (by email)
+  grantPermission: (email: string, permissionId: string) =>
+    api.post<ApiResponse<void>>(`/rbac/users/${encodeURIComponent(email)}/permissions`, { permissionId }),
+  revokePermission: (email: string, permissionId: string) =>
+    api.delete<ApiResponse<void>>(`/rbac/users/${encodeURIComponent(email)}/permissions/${permissionId}`),
+};
+
+// 14. Notification Service (admin only)
+export const notificationService = {
+  getAll: (params?: { tenantId?: string; isRead?: boolean; cursor?: string; size?: number }) =>
+    api.get<ApiResponse<PaginatedResponse<NotificationResponse>>>('/notifications', { params }),
+  getUnreadCount: (tenantId: string) =>
+    api.get<ApiResponse<{ count: number }>>('/notifications/unread-count', { params: { tenantId } }),
+  markAsRead: (id: string) => api.patch<ApiResponse<NotificationResponse>>(`/notifications/${id}/read`),
+  markAllAsRead: (tenantId: string) =>
+    api.patch<ApiResponse<void>>('/notifications/read-all', null, { params: { tenantId } }),
+};
+
+// 15. Auth Me endpoint
+export const authMeService = {
+  getMe: () => api.get<ApiResponse<UserInfoResponse>>('/auth/me'),
 };

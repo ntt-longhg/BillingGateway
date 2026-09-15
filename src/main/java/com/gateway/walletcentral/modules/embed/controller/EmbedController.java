@@ -78,6 +78,16 @@ public class EmbedController {
         this.pricingPlanRepository = pricingPlanRepository;
     }
 
+    @GetMapping("/tenant-info")
+    @Operation(summary = "Get tenant info (id, name) from X-API-Key for WebSocket subscription")
+    public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getTenantInfo(HttpServletRequest request) {
+        Tenant tenant = extractTenant(request);
+        java.util.Map<String, Object> info = new java.util.HashMap<>();
+        info.put("tenantId", tenant.getId().toString());
+        info.put("name", tenant.getName());
+        return ResponseEntity.ok(ApiResponse.ok(info));
+    }
+
     @GetMapping("/wallet")
     @Operation(summary = "Get wallet for the current tenant (from X-API-Key)")
     public ResponseEntity<ApiResponse<WalletResponse>> getWallet(HttpServletRequest request) {

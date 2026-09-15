@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -31,8 +32,8 @@ public class TransactionService {
     private final MessageProducer messageProducer;
 
     public TransactionService(TransactionRepository transactionRepository,
-                              WalletRepository walletRepository,
-                              MessageProducer messageProducer) {
+            WalletRepository walletRepository,
+            MessageProducer messageProducer) {
         this.transactionRepository = transactionRepository;
         this.walletRepository = walletRepository;
         this.messageProducer = messageProducer;
@@ -71,6 +72,7 @@ public class TransactionService {
                 .description(request.getDescription())
                 .referenceFrom(request.getReferenceFrom())
                 .referenceId(request.getReferenceId())
+                .createdAt(OffsetDateTime.now())
                 .build();
 
         wallet.setBalance(balanceAfter);
@@ -90,7 +92,8 @@ public class TransactionService {
     }
 
     @Transactional(readOnly = true)
-    public CursorPage<TransactionResponse> list(UUID walletId, TransactionType type, TransactionStatus status, CursorParams params) {
+    public CursorPage<TransactionResponse> list(UUID walletId, TransactionType type, TransactionStatus status,
+            CursorParams params) {
         UUID cursorId = CursorUtil.parseCursor(params.getCursor());
         var pageable = PageRequest.of(0, params.getSize() + 1);
 

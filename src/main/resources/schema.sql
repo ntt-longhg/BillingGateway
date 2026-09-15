@@ -290,7 +290,7 @@ CREATE TABLE IF NOT EXISTS admin_otps (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =============================================
--- 14. Admin Tokens (no FK dependencies)
+-- 14. Admin Tokens (session only - cleaned up on expiry)
 -- Stores active admin session tokens (UUID) for API authentication
 -- =============================================
 CREATE TABLE IF NOT EXISTS admin_tokens (
@@ -304,3 +304,178 @@ CREATE TABLE IF NOT EXISTS admin_tokens (
     INDEX idx_admin_tokens_email (email),
     INDEX idx_admin_tokens_expires_at (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- 15. Admin Users (persistent - NEVER deleted)
+-- Stores admin user accounts. RBAC data is attached here,
+-- so it persists across token sessions.
+-- =============================================
+CREATE TABLE IF NOT EXISTS admin_users (
+    id CHAR(36) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    display_name VARCHAR(255) NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    last_login_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_admin_users_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- 15. Roles (RBAC - dynamic roles)
+-- =============================================
+CREATE TABLE IF NOT EXISTS roles (
+    id CHAR(36) NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NULL,
+    is_system TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_roles_name (name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- 16. Permissions (RBAC - permission catalog)
+-- =============================================
+CREATE TABLE IF NOT EXISTS permissions (
+    id CHAR(36) NOT NULL,
+    code VARCHAR(100) NOT NULL,
+    module VARCHAR(50) NOT NULL,
+    description VARCHAR(255) NULL,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_permissions_code (code),
+    INDEX idx_permissions_module (module)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- 17. Role Permissions (RBAC - role-permission mapping)
+-- =============================================
+CREATE TABLE IF NOT EXISTS role_permissions (
+    role_id CHAR(36) NOT NULL,
+    permission_id CHAR(36) NOT NULL,
+    PRIMARY KEY (role_id, permission_id),
+    CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- 19. Admin User Roles (RBAC - user-role assignment, persists across sessions)
+-- =============================================
+CREATE TABLE IF NOT EXISTS admin_user_roles (
+    admin_user_id CHAR(36) NOT NULL,
+    role_id CHAR(36) NOT NULL,
+    PRIMARY KEY (admin_user_id),
+    CONSTRAINT fk_admin_user_roles_user FOREIGN KEY (admin_user_id) REFERENCES admin_users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_admin_user_roles_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- 20. Admin User Permissions (RBAC - user-specific permission overrides, persists across sessions)
+-- =============================================
+CREATE TABLE IF NOT EXISTS admin_user_permissions (
+    admin_user_id CHAR(36) NOT NULL,
+    permission_id CHAR(36) NOT NULL,
+    is_granted TINYINT(1) NOT NULL DEFAULT 1,
+    PRIMARY KEY (admin_user_id, permission_id),
+    CONSTRAINT fk_admin_user_permissions_user FOREIGN KEY (admin_user_id) REFERENCES admin_users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_admin_user_permissions_permission FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- 20. Notifications (real-time push + persistence)
+-- =============================================
+CREATE TABLE IF NOT EXISTS notifications (
+    id CHAR(36) NOT NULL,
+    tenant_id CHAR(36) NOT NULL,
+    type VARCHAR(50) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    reference_type VARCHAR(50) NULL,
+    reference_id CHAR(36) NULL,
+    is_read TINYINT(1) NOT NULL DEFAULT 0,
+    read_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_notifications_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id),
+    INDEX idx_notifications_tenant_id (tenant_id),
+    INDEX idx_notifications_is_read (is_read),
+    INDEX idx_notifications_created_at (created_at),
+    INDEX idx_notifications_type (type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================
+-- Default RBAC Seed Data
+-- =============================================
+
+-- Default Roles
+INSERT IGNORE INTO roles (id, name, description, is_system) VALUES
+('00000000-0000-0000-0000-000000000001', 'SUPER_ADMIN', 'Full system access - cannot be deleted or modified', 1),
+('00000000-0000-0000-0000-000000000002', 'ADMIN', 'Administrative access with most permissions', 0),
+('00000000-0000-0000-0000-000000000003', 'OPERATOR', 'Operational access - manage tenants, wallets, billing', 0),
+('00000000-0000-0000-0000-000000000004', 'VIEWER', 'Read-only access to all modules', 0);
+
+-- Default Permissions
+INSERT IGNORE INTO permissions (id, code, module, description) VALUES
+('00000000-0000-0000-0000-000000000010', 'TENANT_VIEW', 'TENANT', 'View tenants'),
+('00000000-0000-0000-0000-000000000011', 'TENANT_CREATE', 'TENANT', 'Create tenants'),
+('00000000-0000-0000-0000-000000000012', 'TENANT_UPDATE', 'TENANT', 'Update tenants'),
+('00000000-0000-0000-0000-000000000013', 'TENANT_DELETE', 'TENANT', 'Delete tenants'),
+('00000000-0000-0000-0000-000000000020', 'WALLET_VIEW', 'WALLET', 'View wallets'),
+('00000000-0000-0000-0000-000000000021', 'WALLET_UPDATE', 'WALLET', 'Update wallets'),
+('00000000-0000-0000-0000-000000000022', 'WALLET_TOPUP', 'WALLET', 'Topup wallets'),
+('00000000-0000-0000-0000-000000000023', 'WALLET_SWITCH_TYPE', 'WALLET', 'Switch wallet type prepaid/postpaid'),
+('00000000-0000-0000-0000-000000000030', 'INVOICE_VIEW', 'INVOICE', 'View invoices'),
+('00000000-0000-0000-0000-000000000031', 'INVOICE_CREATE', 'INVOICE', 'Create invoices'),
+('00000000-0000-0000-0000-000000000032', 'INVOICE_UPDATE', 'INVOICE', 'Update invoices'),
+('00000000-0000-0000-0000-000000000033', 'INVOICE_GENERATE', 'INVOICE', 'Generate invoices from usage logs'),
+('00000000-0000-0000-0000-000000000034', 'INVOICE_PAY', 'INVOICE', 'Mark invoices as paid'),
+('00000000-0000-0000-0000-000000000040', 'BILLING_VIEW', 'BILLING', 'View billing data'),
+('00000000-0000-0000-0000-000000000041', 'BILLING_PROCESS', 'BILLING', 'Process billing webhooks'),
+('00000000-0000-0000-0000-000000000050', 'TRANSACTION_VIEW', 'TRANSACTION', 'View transactions'),
+('00000000-0000-0000-0000-000000000060', 'USAGE_LOG_VIEW', 'USAGE_LOG', 'View usage logs'),
+('00000000-0000-0000-0000-000000000070', 'SERVICE_VIEW', 'SERVICE', 'View services'),
+('00000000-0000-0000-0000-000000000071', 'SERVICE_CREATE', 'SERVICE', 'Create services'),
+('00000000-0000-0000-0000-000000000072', 'SERVICE_UPDATE', 'SERVICE', 'Update services'),
+('00000000-0000-0000-0000-000000000073', 'SERVICE_DELETE', 'SERVICE', 'Delete services'),
+('00000000-0000-0000-0000-000000000080', 'PRICING_VIEW', 'PRICING', 'View pricing plans'),
+('00000000-0000-0000-0000-000000000081', 'PRICING_CREATE', 'PRICING', 'Create pricing plans'),
+('00000000-0000-0000-0000-000000000082', 'PRICING_UPDATE', 'PRICING', 'Update pricing plans'),
+('00000000-0000-0000-0000-000000000083', 'PRICING_DELETE', 'PRICING', 'Delete pricing plans'),
+('00000000-0000-0000-0000-000000000090', 'PLAN_VIEW', 'PLAN', 'View wallet plans'),
+('00000000-0000-0000-0000-000000000091', 'PLAN_APPROVE', 'PLAN', 'Approve wallet plans'),
+('00000000-0000-0000-0000-000000000092', 'PLAN_REJECT', 'PLAN', 'Reject wallet plans'),
+('00000000-0000-0000-0000-000000000100', 'REPORT_VIEW', 'REPORT', 'View reports'),
+('00000000-0000-0000-0000-000000000110', 'RBAC_VIEW', 'RBAC', 'View roles and permissions'),
+('00000000-0000-0000-0000-000000000111', 'RBAC_MANAGE_ROLES', 'RBAC', 'Create/update/delete roles'),
+('00000000-0000-0000-0000-000000000112', 'RBAC_MANAGE_USER_PERMISSIONS', 'RBAC', 'Manage user-specific permission overrides'),
+('00000000-0000-0000-0000-000000000120', 'SETTINGS_VIEW', 'SETTINGS', 'View system settings'),
+('00000000-0000-0000-0000-000000000121', 'SETTINGS_UPDATE', 'SETTINGS', 'Update system settings'),
+('00000000-0000-0000-0000-000000000130', 'NOTIFICATION_VIEW', 'NOTIFICATION', 'View notifications'),
+('00000000-0000-0000-0000-000000000131', 'NOTIFICATION_MANAGE', 'NOTIFICATION', 'Manage notification settings');
+
+-- SUPER_ADMIN gets ALL permissions
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+SELECT '00000000-0000-0000-0000-000000000001', id FROM permissions;
+
+-- ADMIN gets most permissions (except RBAC management)
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+SELECT '00000000-0000-0000-0000-000000000002', id FROM permissions WHERE code NOT IN ('RBAC_MANAGE_ROLES', 'RBAC_MANAGE_USER_PERMISSIONS');
+
+-- OPERATOR gets operational permissions
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+SELECT '00000000-0000-0000-0000-000000000003', id FROM permissions WHERE code IN (
+    'TENANT_VIEW', 'TENANT_CREATE', 'TENANT_UPDATE',
+    'WALLET_VIEW', 'WALLET_UPDATE', 'WALLET_TOPUP',
+    'INVOICE_VIEW', 'INVOICE_CREATE', 'INVOICE_UPDATE', 'INVOICE_GENERATE', 'INVOICE_PAY',
+    'BILLING_VIEW', 'BILLING_PROCESS',
+    'TRANSACTION_VIEW', 'USAGE_LOG_VIEW',
+    'SERVICE_VIEW', 'PRICING_VIEW',
+    'PLAN_VIEW', 'PLAN_APPROVE', 'PLAN_REJECT',
+    'REPORT_VIEW', 'NOTIFICATION_VIEW'
+);
+
+-- VIEWER gets read-only permissions
+INSERT IGNORE INTO role_permissions (role_id, permission_id)
+SELECT '00000000-0000-0000-0000-000000000004', id FROM permissions WHERE code LIKE '%_VIEW';

@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { walletService, tenantService, pricingPlanService, walletPlanService } from '@/services/billingServices';
 import { WalletResponse, TenantResponse, PricingPlanResponse } from '@/types/api';
@@ -23,7 +24,6 @@ import {
   Plus,
   RefreshCw,
   AlertCircle,
-  CheckCircle2,
   ArrowRightLeft,
   CreditCard,
   Lock,
@@ -34,11 +34,11 @@ import {
 } from 'lucide-react';
 
 export const WalletManagementPage: React.FC = () => {
+  const { addToast } = useToast();
   const [wallets, setWallets] = useState<WalletResponse[]>([]);
   const [tenants, setTenants] = useState<TenantResponse[]>([]);
   const [plans, setPlans] = useState<PricingPlanResponse[]>([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Create wallet dialog
@@ -115,13 +115,13 @@ export const WalletManagementPage: React.FC = () => {
     try {
       const res = await walletService.create(createData);
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Tạo ví thành công!' });
+        addToast({ variant: 'success', message: 'Tạo ví thành công!' });
         setShowCreateDialog(false);
         setCreateData({ tenantId: '', type: 'PREPAID', creditLimit: 0 });
         fetchWallets();
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Không thể tạo ví.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Không thể tạo ví.' });
     }
   };
 
@@ -137,12 +137,12 @@ export const WalletManagementPage: React.FC = () => {
         createdBy: 'admin',
       });
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Đã thêm gói vào ví! Yêu cầu đang chờ duyệt.' });
+        addToast({ variant: 'success', message: 'Đã thêm gói vào ví! Yêu cầu đang chờ duyệt.' });
         setShowAddPlanDialog(false);
         setAddPlanData({ walletId: '', pricingPlanId: '' });
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Không thể thêm gói.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Không thể thêm gói.' });
     }
   };
 
@@ -163,14 +163,14 @@ export const WalletManagementPage: React.FC = () => {
             createdBy: 'admin',
           });
         }
-        setMessage({ type: 'success', text: 'Chuyển từ trả sau sang trả trước thành công! Đã lập hóa đơn và điều chỉnh credit limit.' });
+        addToast({ variant: 'success', message: 'Chuyển từ trả sau sang trả trước thành công! Đã lập hóa đơn và điều chỉnh credit limit.' });
       } catch (err: any) {
-        setMessage({ type: 'error', text: err.response?.data?.message || 'Lỗi khi chuyển loại ví.' });
+        addToast({ variant: 'destructive', message: err.response?.data?.message || 'Lỗi khi chuyển loại ví.' });
         setShowSwitchDialog(false);
         return;
       }
     } else {
-      setMessage({ type: 'success', text: 'Chuyển loại ví thành công. Số dư được giữ nguyên.' });
+      addToast({ variant: 'success', message: 'Chuyển loại ví thành công. Số dư được giữ nguyên.' });
     }
 
     setShowSwitchDialog(false);
@@ -182,14 +182,14 @@ export const WalletManagementPage: React.FC = () => {
     try {
       const res = await walletService.updateStatus(wallet.id, { status: nextStatus });
       if (res.data.success) {
-        setMessage({
-          type: 'success',
-          text: `Đã ${nextStatus === 'ACTIVE' ? 'kích hoạt' : 'đình chỉ'} ví thành công.`,
+        addToast({
+          variant: 'success',
+          message: `Đã ${nextStatus === 'ACTIVE' ? 'kích hoạt' : 'đình chỉ'} ví thành công.`,
         });
         fetchWallets();
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Lỗi cập nhật trạng thái.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Lỗi cập nhật trạng thái.' });
     }
   };
 
@@ -218,14 +218,6 @@ export const WalletManagementPage: React.FC = () => {
           </Button>
         </div>
       </div>
-
-      {/* Message */}
-      {message && (
-        <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
-          {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          <AlertDescription>{message.text}</AlertDescription>
-        </Alert>
-      )}
 
       {/* Search */}
       <div className="relative max-w-sm">

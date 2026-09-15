@@ -12,19 +12,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Building2, Plus, CheckCircle2, AlertCircle, RefreshCw, Trash2, ToggleLeft, ToggleRight, Search } from 'lucide-react';
+import { Building2, Plus, RefreshCw, Trash2, ToggleLeft, ToggleRight, Search } from 'lucide-react';
 import { tenantService } from '@/services/billingServices';
 import { TenantResponse } from '@/types/api';
 import { formatDate, getStatusConfig } from '@/lib/utils';
 
 export const TenantManagementPage: React.FC = () => {
+  const { addToast } = useToast();
   const [tenants, setTenants] = useState<TenantResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<TenantResponse | null>(null);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   const [formData, setFormData] = useState({
@@ -67,13 +67,13 @@ export const TenantManagementPage: React.FC = () => {
     try {
       const res = await tenantService.create(formData);
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Tạo Tenant thành công!' });
+        addToast({ variant: 'success', message: 'Tạo Tenant thành công!' });
         setShowCreateModal(false);
         setFormData({ name: '', clientId: '', clientSecret: '', allowedDomains: '' });
         fetchTenants();
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Không thể tạo Tenant.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Không thể tạo Tenant.' });
     }
   };
 
@@ -82,11 +82,11 @@ export const TenantManagementPage: React.FC = () => {
     try {
       const res = await tenantService.updateStatus(tenant.id, { status: nextStatus });
       if (res.data.success) {
-        setMessage({ type: 'success', text: `Đã chuyển trạng thái Tenant thành ${nextStatus}` });
+        addToast({ variant: 'success', message: `Đã chuyển trạng thái Tenant thành ${nextStatus}` });
         fetchTenants();
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: 'Lỗi cập nhật trạng thái Tenant.' });
+      addToast({ variant: 'destructive', message: 'Lỗi cập nhật trạng thái Tenant.' });
     }
   };
 
@@ -95,12 +95,12 @@ export const TenantManagementPage: React.FC = () => {
     try {
       const res = await tenantService.delete(showDeleteConfirm.id);
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Đã xóa Tenant thành công.' });
+        addToast({ variant: 'success', message: 'Đã xóa Tenant thành công.' });
         setShowDeleteConfirm(null);
         fetchTenants();
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Không thể xóa Tenant.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Không thể xóa Tenant.' });
     }
   };
 
@@ -125,13 +125,6 @@ export const TenantManagementPage: React.FC = () => {
           </Button>
         </div>
       </div>
-
-      {message && (
-        <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
-          {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          <AlertDescription>{message.text}</AlertDescription>
-        </Alert>
-      )}
 
       {/* Search */}
       <div className="relative max-w-sm">

@@ -1,12 +1,16 @@
 package com.gateway.walletcentral.modules.auth.controller;
 
+import com.gateway.walletcentral.config.SecurityConfig;
 import com.gateway.walletcentral.core.response.ApiResponse;
 import com.gateway.walletcentral.modules.auth.dto.AuthResponse;
 import com.gateway.walletcentral.modules.auth.dto.SendOtpRequest;
+import com.gateway.walletcentral.modules.auth.dto.UserInfoResponse;
 import com.gateway.walletcentral.modules.auth.dto.VerifyOtpRequest;
 import com.gateway.walletcentral.modules.auth.service.AuthService;
+import com.gateway.walletcentral.modules.auth.service.RbacService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,9 +23,11 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final RbacService rbacService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, RbacService rbacService) {
         this.authService = authService;
+        this.rbacService = rbacService;
     }
 
     @PostMapping("/otp/send")
@@ -53,11 +59,23 @@ public class AuthController {
     }
 
     @PostMapping("/cleanup")
-    @Operation(summary = "Manual cleanup of expired OTPs and tokens")
+    @Operation(summary = "Manual cleanup of expired OTPs and tokens (users are preserved)")
     public ResponseEntity<ApiResponse<Map<String, Integer>>> cleanup() {
         int otps = authService.cleanupExpiredOtps();
         int tokens = authService.cleanupExpiredTokens();
         Map<String, Integer> data = Map.of("deletedOtps", otps, "deletedTokens", tokens);
         return ResponseEntity.ok(ApiResponse.ok(data, "Cleanup completed"));
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Get current user info with role and permissions")
+    public ResponseEntity<ApiResponse<UserInfoResponse>> getCurrentUser(
+            HttpServletRequest request) {
+        String email = (String) request.getAttribute(SecurityConfig.REQUEST_ATTR_EMAIL);
+        if (email == null) {
+            return ResponseEntity.status(401).build();
+        }
+        UserInfoResponse response = rbacService.getUserInfoByEmail(email);
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }

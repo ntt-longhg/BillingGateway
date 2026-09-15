@@ -360,6 +360,8 @@ export interface AuthResponse {
   token: string;          // Admin session token (UUID)
   email: string;          // Admin email
   expiresInHours: number; // Token expiry in hours
+  roleName?: string;      // User role name
+  permissions?: string[]; // Effective permissions
 }
 
 // 12. System Config Module DTOs
@@ -375,4 +377,77 @@ export interface SystemConfigResponse {
 export interface SystemConfigUpdateRequest {
   key: string;
   value: string;
+}
+
+// 13. RBAC Module DTOs
+export interface RoleResponse {
+  id: string;
+  name: string;
+  description?: string;
+  isSystem: boolean;
+  permissionIds: string[];
+  permissionCodes: string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface RoleCreateRequest {
+  name: string;
+  description?: string;
+  permissionIds?: string[];
+}
+
+export interface RoleUpdateRequest {
+  name?: string;
+  description?: string;
+  permissionIds?: string[];
+}
+
+export interface PermissionResponse {
+  id: string;
+  code: string;
+  module: string;
+  description?: string;
+}
+
+export interface AdminUserResponse {
+  id: string;
+  email: string;
+  displayName?: string;
+  isActive: boolean;
+  roleName?: string;
+  roleId?: string;
+  permissions: string[];
+  lastLoginAt?: string;
+  createdAt: string;
+}
+
+export interface UserInfoResponse {
+  email: string;
+  userId?: string;
+  displayName?: string;
+  roleId?: string;
+  roleName?: string;
+  permissions: string[];
+  overrides: UserPermissionOverrideResponse[];
+}
+
+export interface UserPermissionOverrideResponse {
+  permissionId: string;
+  permissionCode: string;
+  isGranted: boolean;
+}
+
+// 14. Notification DTOs
+export interface NotificationResponse {
+  id: string;
+  tenantId: string;
+  type: string;
+  title: string;
+  message: string;
+  referenceType?: string;
+  referenceId?: string;
+  isRead: boolean;
+  readAt?: string;
+  createdAt: string;
 }

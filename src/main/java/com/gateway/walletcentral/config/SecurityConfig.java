@@ -29,6 +29,7 @@ import java.util.Optional;
 public class SecurityConfig {
 
     private static final String API_KEY_HEADER = "X-API-Key";
+    public static final String REQUEST_ATTR_EMAIL = "authenticatedEmail";
 
     private final TenantRepository tenantRepository;
     private final AuthService authService;
@@ -47,6 +48,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
                         .anyRequest().permitAll())
                 .addFilterBefore(apiKeyFilter(), UsernamePasswordAuthenticationFilter.class);
 
@@ -56,9 +58,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("*"));
+        config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
@@ -81,6 +84,12 @@ public class SecurityConfig {
                     return;
                 }
 
+                // Skip auth for WebSocket (SockJS info, transport, websocket upgrade)
+                if (path.startsWith("/ws")) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+
                 // Skip auth for public OTP endpoints (send + verify only)
                 if (path.startsWith("/api/v1/auth/otp/")) {
                     filterChain.doFilter(request, response);
@@ -97,6 +106,11 @@ public class SecurityConfig {
 
                 // 1. Check admin session token (UUID format from OTP login)
                 if (authService.isValidAdminToken(apiKey)) {
+                    // Resolve email from token and set as request attribute
+                    String email = authService.getEmailFromToken(apiKey);
+                    if (email != null) {
+                        request.setAttribute(REQUEST_ATTR_EMAIL, email);
+                    }
                     filterChain.doFilter(request, response);
                     return;
                 }

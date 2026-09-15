@@ -2,17 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Clock, CheckCircle2, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { Clock, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import { walletPlanService } from '@/services/billingServices';
 import { WalletPlanResponse } from '@/types/api';
 import { formatCurrency, formatDate, getStatusConfig } from '@/lib/utils';
 
 export const PendingWalletPlansPage: React.FC = () => {
+  const { addToast } = useToast();
   const [pendingPlans, setPendingPlans] = useState<WalletPlanResponse[]>([]);
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchPendingPlans = async () => {
     setLoading(true);
@@ -36,11 +36,11 @@ export const PendingWalletPlansPage: React.FC = () => {
     try {
       const res = await walletPlanService.approve(id, { approvedBy: 'admin' });
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Đã phê duyệt gói cước thành công!' });
+        addToast({ variant: 'success', message: 'Đã phê duyệt gói cước thành công!' });
         fetchPendingPlans();
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Không thể duyệt gói cước.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Không thể duyệt gói cước.' });
     }
   };
 
@@ -48,11 +48,11 @@ export const PendingWalletPlansPage: React.FC = () => {
     try {
       const res = await walletPlanService.reject(id, { approvedBy: 'admin' });
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Đã từ chối đăng ký gói cước.' });
+        addToast({ variant: 'success', message: 'Đã từ chối đăng ký gói cước.' });
         fetchPendingPlans();
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Không thể từ chối gói cước.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Không thể từ chối gói cước.' });
     }
   };
 
@@ -73,13 +73,6 @@ export const PendingWalletPlansPage: React.FC = () => {
           Làm mới
         </Button>
       </div>
-
-      {message && (
-        <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
-          {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          <AlertDescription>{message.text}</AlertDescription>
-        </Alert>
-      )}
 
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-3">

@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AdminLayout } from '../layouts/AdminLayout';
 import { EmbedLayout } from '../layouts/EmbedLayout';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { NotificationProvider } from '../context/NotificationContext';
+import { ToastProvider } from '../components/ui/toast';
 import { Loader2 } from 'lucide-react';
 
 import { AdminLoginPage } from '../pages/admin/AdminLoginPage';
@@ -13,6 +15,8 @@ import { PendingWalletPlansPage } from '../pages/admin/PendingWalletPlansPage';
 import { TenantManagementPage } from '../pages/admin/TenantManagementPage';
 import { WalletManagementPage } from '../pages/admin/WalletManagementPage';
 import { AdminSettingsPage } from '../pages/admin/AdminSettingsPage';
+import { AdminInvoicePage } from '../pages/admin/AdminInvoicePage';
+import { AdminRbacPage } from '../pages/admin/AdminRbacPage';
 
 import { EmbedWalletPage } from '../pages/embed/EmbedWalletPage';
 import { EmbedTransactionsPage } from '../pages/embed/EmbedTransactionsPage';
@@ -41,10 +45,28 @@ const AdminRouteGuard: React.FC<{ children: React.ReactNode }> = ({ children }) 
   return <>{children}</>;
 };
 
+const ProtectedRoute: React.FC<{ children: React.ReactNode; permission?: string }> = ({ children, permission }) => {
+  const { hasPermission } = useAuth();
+
+  if (permission && !hasPermission(permission)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-slate-800">403 - Access Denied</h2>
+          <p className="text-slate-500 mt-2">You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
 export const AppRoutes: React.FC = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ToastProvider>
         <Routes>
           {/* Default Redirect */}
           <Route path="/" element={<Navigate to="/admin" replace />} />
@@ -59,19 +81,55 @@ export const AppRoutes: React.FC = () => {
             path="/admin"
             element={
               <AdminRouteGuard>
-                <AdminLayout />
+                <NotificationProvider admin>
+                  <AdminLayout />
+                </NotificationProvider>
               </AdminRouteGuard>
             }
           >
             <Route index element={<AdminDashboard />} />
-            <Route path="services" element={<ServiceCatalogPage />} />
-            <Route path="pricing-plans" element={<PricingPlansPage />} />
-            <Route path="wallet-plans/pending" element={<PendingWalletPlansPage />} />
-            <Route path="tenants" element={<TenantManagementPage />} />
-            <Route path="wallets" element={<WalletManagementPage />} />
+            <Route path="services" element={
+              <ProtectedRoute permission="SERVICE_VIEW">
+                <ServiceCatalogPage />
+              </ProtectedRoute>
+            } />
+            <Route path="pricing-plans" element={
+              <ProtectedRoute permission="PRICING_VIEW">
+                <PricingPlansPage />
+              </ProtectedRoute>
+            } />
+            <Route path="wallet-plans/pending" element={
+              <ProtectedRoute permission="PLAN_VIEW">
+                <PendingWalletPlansPage />
+              </ProtectedRoute>
+            } />
+            <Route path="tenants" element={
+              <ProtectedRoute permission="TENANT_VIEW">
+                <TenantManagementPage />
+              </ProtectedRoute>
+            } />
+            <Route path="wallets" element={
+              <ProtectedRoute permission="WALLET_VIEW">
+                <WalletManagementPage />
+              </ProtectedRoute>
+            } />
+            <Route path="invoices" element={
+              <ProtectedRoute permission="INVOICE_VIEW">
+                <AdminInvoicePage />
+              </ProtectedRoute>
+            } />
+            <Route path="rbac" element={
+              <ProtectedRoute permission="RBAC_VIEW">
+                <AdminRbacPage />
+              </ProtectedRoute>
+            } />
             <Route path="docs/embed" element={<EmbedDocsPage />} />
             <Route path="demo" element={<EmbedDemoPage />} />
-            <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="settings" element={
+              <ProtectedRoute permission="SETTINGS_VIEW">
+                <AdminSettingsPage />
+              </ProtectedRoute>
+            } />
           </Route>
 
           {/* ------------------------------------------------------------- */}
@@ -96,6 +154,7 @@ export const AppRoutes: React.FC = () => {
             }
           />
         </Routes>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );

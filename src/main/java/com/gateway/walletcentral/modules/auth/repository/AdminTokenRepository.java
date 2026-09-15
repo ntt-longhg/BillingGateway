@@ -19,6 +19,8 @@ public interface AdminTokenRepository extends JpaRepository<AdminToken, UUID> {
 
     int deleteByToken(String token);
 
+    boolean existsByEmail(String email);
+
     @Modifying
     @Query("DELETE FROM AdminToken t WHERE t.expiresAt < :now")
     int deleteExpired(OffsetDateTime now);

@@ -13,18 +13,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { FileSpreadsheet, Plus, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { FileSpreadsheet, Plus, RefreshCw } from 'lucide-react';
 import { pricingPlanService } from '@/services/billingServices';
 import { PricingPlanResponse } from '@/types/api';
 import { formatCurrency, getStatusConfig } from '@/lib/utils';
 
 export const PricingPlansPage: React.FC = () => {
+  const { addToast } = useToast();
   const [plans, setPlans] = useState<PricingPlanResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [formData, setFormData] = useState({
     code: '',
@@ -61,12 +61,12 @@ export const PricingPlansPage: React.FC = () => {
     try {
       const res = await pricingPlanService.create(formData);
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Tạo bảng giá Tenant thành công!' });
+        addToast({ variant: 'success', message: 'Tạo bảng giá Tenant thành công!' });
         setShowCreateModal(false);
         fetchPlans();
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Không thể tạo bảng giá.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Không thể tạo bảng giá.' });
     }
   };
 
@@ -75,11 +75,11 @@ export const PricingPlansPage: React.FC = () => {
     try {
       const res = await pricingPlanService.updateStatus(plan.id, { status: nextStatus });
       if (res.data.success) {
-        setMessage({ type: 'success', text: `Đã chuyển trạng thái bảng giá thành ${nextStatus}` });
+        addToast({ variant: 'success', message: `Đã chuyển trạng thái bảng giá thành ${nextStatus}` });
         fetchPlans();
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: 'Lỗi cập nhật trạng thái bảng giá.' });
+      addToast({ variant: 'destructive', message: 'Lỗi cập nhật trạng thái bảng giá.' });
     }
   };
 
@@ -104,13 +104,6 @@ export const PricingPlansPage: React.FC = () => {
           </Button>
         </div>
       </div>
-
-      {message && (
-        <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
-          {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          <AlertDescription>{message.text}</AlertDescription>
-        </Alert>
-      )}
 
       {/* Pricing Plans Table Card */}
       <Card className="border-slate-200 shadow-sm">

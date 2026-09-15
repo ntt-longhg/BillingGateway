@@ -2,16 +2,17 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { embedService } from '@/services/billingServices';
 import { WalletResponse, PricingPlanResponse } from '@/types/api';
 import { formatCurrency } from '@/lib/utils';
-import { Wallet, ArrowUpRight, Zap, RefreshCw, CreditCard, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Wallet, ArrowUpRight, Zap, RefreshCw, CreditCard, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export const EmbedWalletPage: React.FC = () => {
   const { token } = useAuth();
+  const { addToast } = useToast();
   const [wallet, setWallet] = useState<WalletResponse | null>(null);
   const [plans, setPlans] = useState<PricingPlanResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -19,7 +20,6 @@ export const EmbedWalletPage: React.FC = () => {
   const [selectedPlan, setSelectedPlan] = useState<PricingPlanResponse | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [submitResult, setSubmitResult] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchWalletData = useCallback(async () => {
     setLoading(true);
@@ -55,25 +55,22 @@ export const EmbedWalletPage: React.FC = () => {
   const handleSelectPlan = (plan: PricingPlanResponse) => {
     setSelectedPlan(plan);
     setConfirmOpen(true);
-    setSubmitResult(null);
   };
 
   const handleConfirmPurchase = async () => {
     if (!selectedPlan) return;
     setSubmitting(true);
-    setSubmitResult(null);
     try {
       const res = await embedService.createWalletPlan(selectedPlan.id);
       if (res.data.success) {
-        setSubmitResult({ type: 'success', text: `Đã gửi yêu cầu mua gói "${selectedPlan.name}". Vui lòng chờ admin duyệt.` });
+        addToast({ variant: 'success', message: `Đã gửi yêu cầu mua gói "${selectedPlan.name}". Vui lòng chờ admin duyệt.` });
         setConfirmOpen(false);
-        // Refresh wallet data after purchase
         fetchWalletData();
       } else {
-        setSubmitResult({ type: 'error', text: res.data.message || 'Mua gói thất bại.' });
+        addToast({ variant: 'destructive', message: res.data.message || 'Mua gói thất bại.' });
       }
     } catch (err: any) {
-      setSubmitResult({ type: 'error', text: err.response?.data?.message || 'Lỗi kết nối đến server.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Lỗi kết nối đến server.' });
     } finally {
       setSubmitting(false);
     }
@@ -96,14 +93,6 @@ export const EmbedWalletPage: React.FC = () => {
 
   return (
     <div className="space-y-5">
-      {/* Submit result */}
-      {submitResult && (
-        <Alert variant={submitResult.type === 'success' ? 'success' : 'destructive'}>
-          {submitResult.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          <AlertDescription>{submitResult.text}</AlertDescription>
-        </Alert>
-      )}
-
       {/* Top Banner Card */}
       <div className="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-2xl p-6 text-white shadow-md relative overflow-hidden">
         <div className="absolute right-0 top-0 translate-x-4 -translate-y-4 opacity-10 pointer-events-none">

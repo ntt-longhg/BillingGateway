@@ -2,21 +2,21 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { embedService } from '@/services/billingServices';
 import { InvoiceResponse } from '@/types/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { FileText, CheckCircle2, AlertCircle, CreditCard, RefreshCw, Loader2 } from 'lucide-react';
+import { FileText, CreditCard, RefreshCw, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { api } from '@/api/api';
 
 export const EmbedInvoicesPage: React.FC = () => {
   const { token } = useAuth();
+  const { addToast } = useToast();
   const [invoices, setInvoices] = useState<InvoiceResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchInvoices = useCallback(async () => {
     setLoading(true);
@@ -42,15 +42,21 @@ export const EmbedInvoicesPage: React.FC = () => {
     }
   }, [token]);
 
+  useEffect(() => {
+    if (error) {
+      addToast({ variant: 'destructive', message: error });
+    }
+  }, [error]);
+
   const handlePay = async (invoiceId: string) => {
     try {
       const res = await api.patch(`/invoices/${invoiceId}/pay`, { updatedBy: 'client' });
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Thanh toán hóa đơn thành công!' });
+        addToast({ variant: 'success', message: 'Thanh toán hóa đơn thành công!' });
         fetchInvoices();
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Thanh toán thất bại.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Thanh toán thất bại.' });
     }
   };
 
@@ -78,20 +84,6 @@ export const EmbedInvoicesPage: React.FC = () => {
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Làm mới
         </Button>
       </div>
-
-      {message && (
-        <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
-          {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          <AlertDescription>{message.text}</AlertDescription>
-        </Alert>
-      )}
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
 
       <Card className="border-slate-200 shadow-sm">
         <CardContent className="p-0">

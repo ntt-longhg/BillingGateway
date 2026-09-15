@@ -3,11 +3,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { systemConfigService } from '@/services/billingServices';
 import { SystemConfigResponse } from '@/types/api';
-import { Settings, Mail, Key, ShieldCheck, Save, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Settings, Mail, Key, ShieldCheck, Save, Loader2 } from 'lucide-react';
 
 const GROUP_ICONS: Record<string, React.ReactNode> = {
   SMTP: <Mail className="h-4 w-4" />,
@@ -22,11 +22,11 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 export const AdminSettingsPage: React.FC = () => {
+  const { addToast } = useToast();
   const [configs, setConfigs] = useState<SystemConfigResponse[]>([]);
   const [editedValues, setEditedValues] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [activeTab, setActiveTab] = useState('SMTP');
 
   const fetchConfigs = useCallback(async () => {
@@ -43,7 +43,7 @@ export const AdminSettingsPage: React.FC = () => {
       }
     } catch (err) {
       console.error(err);
-      setMessage({ type: 'error', text: 'Không thể tải cấu hình hệ thống.' });
+      addToast({ variant: 'destructive', message: 'Không thể tải cấu hình hệ thống.' });
     } finally {
       setLoading(false);
     }
@@ -59,18 +59,17 @@ export const AdminSettingsPage: React.FC = () => {
 
   const handleSave = async () => {
     setSaving(true);
-    setMessage(null);
     try {
       const updates = Object.entries(editedValues).map(([key, value]) => ({ key, value }));
       const res = await systemConfigService.update(updates);
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Cấu hình đã được lưu thành công!' });
+        addToast({ variant: 'success', message: 'Cấu hình đã được lưu thành công!' });
         await fetchConfigs();
       } else {
-        setMessage({ type: 'error', text: res.data.message || 'Lưu cấu hình thất bại.' });
+        addToast({ variant: 'destructive', message: res.data.message || 'Lưu cấu hình thất bại.' });
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Lưu cấu hình thất bại.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Lưu cấu hình thất bại.' });
     } finally {
       setSaving(false);
     }
@@ -117,14 +116,6 @@ export const AdminSettingsPage: React.FC = () => {
           {saving ? 'Đang lưu...' : 'Lưu thay đổi'}
         </Button>
       </div>
-
-      {/* Message */}
-      {message && (
-        <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
-          {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          <AlertDescription>{message.text}</AlertDescription>
-        </Alert>
-      )}
 
       {/* Tabs */}
       <Card className="border-slate-200 shadow-sm">

@@ -108,6 +108,15 @@ public class WalletPlanService {
                 .build();
 
         var saved = walletPlanRepository.save(walletPlan);
+        // Notification event
+        Map<String, Object> notifEvent = new HashMap<>();
+        notifEvent.put("tenantId", walletPlan.getTenant().getId().toString());
+        notifEvent.put("type", "WALLET_PLAN");
+        notifEvent.put("title", "Wallet Plan Created");
+        notifEvent.put("message", String.format("Wallet plan %s created successfully", pricingPlan.getName()));
+        notifEvent.put("referenceType", "WALLET_PLAN");
+        notifEvent.put("referenceId", saved.getId().toString());
+        messageProducer.publishNotificationCreated(notifEvent);
         return toResponse(saved);
     }
 
@@ -192,6 +201,7 @@ public class WalletPlanService {
                 .description("Wallet plan topup: " + plan.getName() + " (bonus: " + bonusAmount + ")")
                 .referenceFrom("WALLET_PLAN")
                 .referenceId(refId)
+                .createdAt(OffsetDateTime.now())
                 .build();
         transactionRepository.save(transaction);
         log.info("Created DEPOSIT transaction: {} amount={} for wallet={}", transaction.getId(), creditedAmount,
@@ -213,6 +223,7 @@ public class WalletPlanService {
                     .referenceFrom("WALLET_PLAN")
                     .referenceId(refId)
                     .createdBy(request.getApprovedBy())
+                    .createdAt(OffsetDateTime.now())
                     .build();
             creditAdjustmentRepository.save(adjustment);
             log.info("Created CreditAdjustment: {} type={} amount={}", adjustment.getId(), adjustmentType,
@@ -245,6 +256,7 @@ public class WalletPlanService {
                 .feeBreakdown(feeBreakdown)
                 .referenceFrom("WALLET_PLAN")
                 .referenceId(refId)
+                .createdAt(OffsetDateTime.now())
                 .build();
         usageLogRepository.save(usageLog);
         log.info("Created UsageLog: {} for wallet plan={}", usageLog.getId(), id);
@@ -272,6 +284,16 @@ public class WalletPlanService {
         event.put("newCreditLimit", wallet.getCreditLimit());
         messageProducer.publishWalletPlanApproved(event);
 
+        // Notification event
+        Map<String, Object> notifEvent = new HashMap<>();
+        notifEvent.put("tenantId", walletPlan.getTenant().getId().toString());
+        notifEvent.put("type", "WALLET_PLAN");
+        notifEvent.put("title", "Wallet Plan Approved");
+        notifEvent.put("message", String.format("Wallet plan %s approved successfully", plan.getName()));
+        notifEvent.put("referenceType", "WALLET_PLAN");
+        notifEvent.put("referenceId", id.toString());
+        messageProducer.publishNotificationCreated(notifEvent);
+
         log.info("Wallet plan approved: {} - transaction={}, usageLog={}", id, transaction.getId(), usageLog.getId());
         return toResponse(saved);
     }
@@ -289,6 +311,19 @@ public class WalletPlanService {
         walletPlan.setApprovedBy(request.getApprovedBy());
 
         var saved = walletPlanRepository.save(walletPlan);
+
+        PricingPlan plan = walletPlan.getPricingPlan();
+
+        // Notification event
+        Map<String, Object> notifEvent = new HashMap<>();
+        notifEvent.put("tenantId", walletPlan.getTenant().getId().toString());
+        notifEvent.put("type", "WALLET_PLAN");
+        notifEvent.put("title", "Wallet Plan Reject");
+        notifEvent.put("message", String.format("Wallet plan %s reject successfully", plan.getName()));
+        notifEvent.put("referenceType", "WALLET_PLAN");
+        notifEvent.put("referenceId", saved.getId().toString());
+        messageProducer.publishNotificationCreated(notifEvent);
+
         return toResponse(saved);
     }
 

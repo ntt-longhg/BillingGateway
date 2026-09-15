@@ -15,24 +15,32 @@ import {
   Code,
   Play,
   Settings,
+  FileText,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
+import { useNotifications } from '@/context/NotificationContext';
+import { NotificationCenter } from '@/components/NotificationCenter';
+import Logo from '@/assets/logo.svg';
 
 export const AdminLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { adminLogout, adminEmail } = useAuth();
+  const { pendingWalletPlanCount } = useNotifications();
 
   const menuItems = [
     { path: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
     { path: '/admin/services', label: 'Danh mục dịch vụ', icon: Boxes },
     { path: '/admin/pricing-plans', label: 'Bảng giá Tenant', icon: FileSpreadsheet },
     { path: '/admin/wallets', label: 'Quản lý ví', icon: Wallet },
-    { path: '/admin/wallet-plans/pending', label: 'Duyệt gói cước', icon: Clock, badge: 'Mới' },
+    { path: '/admin/wallet-plans/pending', label: 'Duyệt gói cước', icon: Clock, badge: pendingWalletPlanCount },
     { path: '/admin/tenants', label: 'Quản lý Tenant', icon: Building2 },
+    { path: '/admin/invoices', label: 'Hóa đơn', icon: FileText },
+    { path: '/admin/rbac', label: 'Phân quyền (RBAC)', icon: Shield },
   ];
 
   const toolItems = [
@@ -53,9 +61,7 @@ export const AdminLayout: React.FC = () => {
         {/* Brand Header */}
         <div className="h-16 px-6 flex items-center justify-between border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-lg bg-blue-600 flex items-center justify-center font-bold text-white shadow-md">
-              BG
-            </div>
+            <img src={Logo} alt="Logo" className="h-9 w-9" />
             <div>
               <h2 className="font-bold text-base tracking-wide text-white">WalletCentral</h2>
               <p className="text-xs text-slate-400">Admin Control Panel</p>
@@ -86,7 +92,7 @@ export const AdminLayout: React.FC = () => {
                   <Icon className={cn('h-4 w-4', isActive ? 'text-white' : 'text-slate-400')} />
                   <span>{item.label}</span>
                 </div>
-                {item.badge ? (
+                {item.badge && item.badge > 0 ? (
                   <Badge variant="destructive" className="text-[10px] px-1.5 py-0">
                     {item.badge}
                   </Badge>
@@ -166,10 +172,7 @@ export const AdminLayout: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <button className="p-2 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-blue-600 rounded-full" />
-            </button>
+            <NotificationCenter />
             <div className="h-6 w-[1px] bg-slate-200" />
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-700 font-semibold">

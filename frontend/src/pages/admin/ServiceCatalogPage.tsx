@@ -13,14 +13,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Boxes, Plus, DollarSign, Layers, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Boxes, Plus, DollarSign, Layers } from 'lucide-react';
 import { serviceCatalogService } from '@/services/billingServices';
 import { ServiceResponse, ServicePriceResponse, PriceTierResponse } from '@/types/api';
 import { formatDate, formatCurrency, getStatusConfig } from '@/lib/utils';
 
 export const ServiceCatalogPage: React.FC = () => {
+  const { addToast } = useToast();
   const [services, setServices] = useState<ServiceResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedService, setSelectedService] = useState<ServiceResponse | null>(null);
@@ -47,8 +48,6 @@ export const ServiceCatalogPage: React.FC = () => {
     extendedSize: 100,
     extendedFee: 0,
   });
-
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const fetchServices = async () => {
     setLoading(true);
@@ -103,13 +102,13 @@ export const ServiceCatalogPage: React.FC = () => {
     try {
       const res = await serviceCatalogService.create(newService);
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Tạo dịch vụ thành công!' });
+        addToast({ variant: 'success', message: 'Tạo dịch vụ thành công!' });
         setShowCreateService(false);
         setNewService({ code: '', name: '', description: '' });
         fetchServices();
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Tạo dịch vụ thất bại.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Tạo dịch vụ thất bại.' });
     }
   };
 
@@ -119,12 +118,12 @@ export const ServiceCatalogPage: React.FC = () => {
     try {
       const res = await serviceCatalogService.createPrice(selectedService.id, newPrice);
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Tạo thiết lập giá thành công!' });
+        addToast({ variant: 'success', message: 'Tạo thiết lập giá thành công!' });
         setShowCreatePrice(false);
         handleSelectService(selectedService);
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Tạo giá thất bại.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Tạo giá thất bại.' });
     }
   };
 
@@ -132,11 +131,11 @@ export const ServiceCatalogPage: React.FC = () => {
     try {
       const res = await serviceCatalogService.activatePrice(priceId);
       if (res.data.success && selectedService) {
-        setMessage({ type: 'success', text: 'Kích hoạt mức giá thành công!' });
+        addToast({ variant: 'success', message: 'Kích hoạt mức giá thành công!' });
         handleSelectService(selectedService);
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Lỗi kích hoạt giá.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Lỗi kích hoạt giá.' });
     }
   };
 
@@ -146,12 +145,12 @@ export const ServiceCatalogPage: React.FC = () => {
     try {
       const res = await serviceCatalogService.addPriceTier(selectedPrice.id, newTier);
       if (res.data.success) {
-        setMessage({ type: 'success', text: 'Thêm bậc giá thành công!' });
+        addToast({ variant: 'success', message: 'Thêm bậc giá thành công!' });
         setShowCreateTier(false);
         handleSelectPrice(selectedPrice);
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.response?.data?.message || 'Lỗi thêm bậc giá.' });
+      addToast({ variant: 'destructive', message: err.response?.data?.message || 'Lỗi thêm bậc giá.' });
     }
   };
 
@@ -171,13 +170,6 @@ export const ServiceCatalogPage: React.FC = () => {
           <Plus className="h-4 w-4" /> Thêm Dịch vụ Mới
         </Button>
       </div>
-
-      {message && (
-        <Alert variant={message.type === 'success' ? 'success' : 'destructive'}>
-          {message.type === 'success' ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-          <AlertDescription>{message.text}</AlertDescription>
-        </Alert>
-      )}
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

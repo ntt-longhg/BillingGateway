@@ -2,16 +2,17 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { embedService } from '@/services/billingServices';
 import { UsageLogResponse, CreditAdjustmentResponse, PaginatedResponse } from '@/types/api';
 import { formatCurrency, formatDate } from '@/lib/utils';
-import { BarChart3, Activity, ShieldCheck, RefreshCw, Layers, Loader2, AlertCircle } from 'lucide-react';
+import { BarChart3, Activity, ShieldCheck, RefreshCw, Layers, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export const EmbedReportsPage: React.FC = () => {
   const { token } = useAuth();
+  const { addToast } = useToast();
   const [usageLogs, setUsageLogs] = useState<UsageLogResponse[]>([]);
   const [adjustments, setAdjustments] = useState<CreditAdjustmentResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -58,6 +59,12 @@ export const EmbedReportsPage: React.FC = () => {
     }
   }, [token]);
 
+  useEffect(() => {
+    if (error) {
+      addToast({ variant: 'destructive', message: error });
+    }
+  }, [error]);
+
   const totalUsageUnits = usageLogs.reduce((acc, curr) => acc + (curr.totalUsage || 0), 0);
   const totalChargedAmount = usageLogs.reduce((acc, curr) => acc + (curr.totalCharged || 0), 0);
 
@@ -85,13 +92,6 @@ export const EmbedReportsPage: React.FC = () => {
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} /> Làm mới
         </Button>
       </div>
-
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
 
       {loading && usageLogs.length === 0 && adjustments.length === 0 ? (
         <div className="flex items-center justify-center py-20">

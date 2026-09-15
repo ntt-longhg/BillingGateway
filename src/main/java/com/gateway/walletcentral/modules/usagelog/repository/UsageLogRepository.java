@@ -1,11 +1,13 @@
 package com.gateway.walletcentral.modules.usagelog.repository;
 
 import com.gateway.walletcentral.modules.usagelog.model.UsageLog;
+import com.gateway.walletcentral.modules.wallet.model.WalletType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,4 +19,22 @@ public interface UsageLogRepository extends JpaRepository<UsageLog, UUID> {
                                   @Param("tenantId") UUID tenantId,
                                   @Param("serviceId") UUID serviceId,
                                   org.springframework.data.domain.Pageable pageable);
+
+    /**
+     * Sum total_charged for POSTPAID usage logs within a billing period.
+     * Only POSTPAID usage is invoiced (PREPAID is deducted from balance in real-time).
+     */
+    @Query("SELECT COALESCE(SUM(ul.totalCharged), 0) FROM UsageLog ul WHERE ul.tenant.id = :tenantId AND ul.walletTypeSnapshot = :walletType AND FUNCTION('DATE_FORMAT', ul.createdAt, '%Y-%m') = :billingPeriod")
+    BigDecimal sumChargedByTenantAndPeriod(@Param("tenantId") UUID tenantId,
+                                           @Param("walletType") WalletType walletType,
+                                           @Param("billingPeriod") String billingPeriod);
+
+    /**
+     * Find all usage logs for a tenant within a billing period, regardless of wallet type.
+     */
+    @Query("SELECT ul FROM UsageLog ul WHERE ul.tenant.id = :tenantId AND FUNCTION('DATE_FORMAT', ul.createdAt, '%Y-%m') = :billingPeriod ORDER BY ul.createdAt ASC")
+    List<UsageLog> findByTenantAndPeriod(@Param("tenantId") UUID tenantId,
+                                         @Param("billingPeriod") String billingPeriod);
+
+    boolean existsByReferenceId(String referenceId);
 }

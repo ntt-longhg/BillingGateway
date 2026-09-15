@@ -9,29 +9,44 @@ import com.gateway.walletcentral.modules.invoice.dto.*;
 import com.gateway.walletcentral.modules.invoice.model.Invoice;
 import com.gateway.walletcentral.modules.invoice.model.InvoiceStatus;
 import com.gateway.walletcentral.modules.invoice.repository.InvoiceRepository;
+import com.gateway.walletcentral.modules.tenant.model.Tenant;
 import com.gateway.walletcentral.modules.tenant.repository.TenantRepository;
+import com.gateway.walletcentral.modules.usagelog.model.UsageLog;
+import com.gateway.walletcentral.modules.usagelog.repository.UsageLogRepository;
+import com.gateway.walletcentral.modules.wallet.model.Wallet;
+import com.gateway.walletcentral.modules.wallet.model.WalletType;
 import com.gateway.walletcentral.modules.wallet.repository.WalletRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.YearMonth;
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @Transactional
 public class InvoiceService {
 
+    private static final Logger log = LoggerFactory.getLogger(InvoiceService.class);
+
     private final InvoiceRepository invoiceRepository;
     private final TenantRepository tenantRepository;
     private final WalletRepository walletRepository;
+    private final UsageLogRepository usageLogRepository;
 
     public InvoiceService(InvoiceRepository invoiceRepository,
             TenantRepository tenantRepository,
-            WalletRepository walletRepository) {
+            WalletRepository walletRepository,
+            UsageLogRepository usageLogRepository) {
         this.invoiceRepository = invoiceRepository;
         this.tenantRepository = tenantRepository;
         this.walletRepository = walletRepository;
+        this.usageLogRepository = usageLogRepository;
     }
 
     public InvoiceResponse create(InvoiceCreateRequest request) {
@@ -101,6 +116,85 @@ public class InvoiceService {
 
         var saved = invoiceRepository.save(invoice);
         return toResponse(saved);
+    }
+
+    /**
+     * Generate invoice for a tenant and billing period.
+     * Logic handles prepaid/postpaid wallet type switching:
+     * - POSTPAID usage is invoiced (sum total_charged)
+     * - PREPAID usage is NOT invoiced (already deducted from balance in real-time)
+     * If invoice exists, it updates the total amount.
+     */
+    public InvoiceResponse generateInvoice(UUID tenantId, String billingPeriod, String updatedBy) {
+        var tenant = tenantRepository.findById(tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Tenant", "id", tenantId));
+
+        var wallet = walletRepository.findByTenantId(tenantId)
+                .orElseThrow(() -> new ResourceNotFoundException("Wallet", "tenantId", tenantId));
+
+        // Sum POSTPAID usage for this period
+        BigDecimal postpaidTotal = usageLogRepository.sumChargedByTenantAndPeriod(
+                tenantId, WalletType.POSTPAID, billingPeriod);
+
+        log.info("Invoice generation for tenant={} period={}: postpaidUsage={}", tenantId, billingPeriod, postpaidTotal);
+
+        // Find existing invoice for this period
+        var existingInvoice = invoiceRepository.findByTenantIdAndBillingPeriod(tenantId, billingPeriod);
+
+        if (existingInvoice.isPresent()) {
+            // Update existing invoice
+            var invoice = existingInvoice.get();
+            invoice.setTotalAmount(postpaidTotal);
+            invoice.setWallet(wallet);
+            invoice.setUpdatedBy(updatedBy);
+            invoice.setUpdatedAt(OffsetDateTime.now());
+            var saved = invoiceRepository.save(invoice);
+            log.info("Invoice updated: id={} totalAmount={}", saved.getId(), postpaidTotal);
+            return toResponse(saved);
+        } else {
+            // Create new invoice
+            YearMonth yearMonth = YearMonth.parse(billingPeriod);
+            OffsetDateTime dueDate = yearMonth.plusMonths(1).atDay(10).atStartOfDay(OffsetDateTime.now().getOffset());
+
+            Invoice invoice = Invoice.builder()
+                    .tenant(tenant)
+                    .wallet(wallet)
+                    .billingPeriod(billingPeriod)
+                    .totalAmount(postpaidTotal)
+                    .status(InvoiceStatus.ISSUED)
+                    .dueDate(dueDate)
+                    .createdAt(OffsetDateTime.now())
+                    .updatedBy(updatedBy)
+                    .build();
+
+            var saved = invoiceRepository.save(invoice);
+            log.info("Invoice created: id={} totalAmount={}", saved.getId(), postpaidTotal);
+            return toResponse(saved);
+        }
+    }
+
+    /**
+     * Generate invoices for all active tenants for a given billing period.
+     * Used by scheduler (runs on 1st of each month).
+     */
+    public int generateAllInvoicesForPeriod(String billingPeriod, String updatedBy) {
+        List<Tenant> activeTenants = tenantRepository.findAll().stream()
+                .filter(t -> t.getStatus() == com.gateway.walletcentral.modules.tenant.model.TenantStatus.ACTIVE)
+                .toList();
+
+        int count = 0;
+        for (Tenant tenant : activeTenants) {
+            try {
+                generateInvoice(tenant.getId(), billingPeriod, updatedBy);
+                count++;
+            } catch (Exception e) {
+                log.error("Failed to generate invoice for tenant={} period={}: {}",
+                        tenant.getId(), billingPeriod, e.getMessage());
+            }
+        }
+
+        log.info("Generated {} invoices for period {}", count, billingPeriod);
+        return count;
     }
 
     private InvoiceResponse toResponse(Invoice i) {
