@@ -1,6 +1,6 @@
-package com.gateway.billing.core.rabbitmq;
+package com.gateway.walletcentral.core.rabbitmq;
 
-import com.gateway.billing.modules.billing.dto.BillingWebhookResponse;
+import com.gateway.walletcentral.modules.billing.dto.BillingWebhookResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rabbitmq.client.Channel;
 import org.slf4j.Logger;
@@ -33,13 +33,10 @@ public class BillingConsumer {
         this.restTemplate = restTemplate;
     }
 
-    @RabbitListener(
-            queues = "billing.completed.process",
-            executor = "virtualThreadExecutor"
-    )
+    @RabbitListener(queues = "billing.completed.process", executor = "virtualThreadExecutor")
     public void handleBillingCompleted(Map<String, Object> message,
-                                       @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag,
-                                       Channel channel) throws IOException {
+            @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag,
+            Channel channel) throws IOException {
         String transactionId = (String) message.get("transactionId");
         String webhookUrl = (String) message.get("webhookUrl");
         String webhookAuth = (String) message.get("webhookAuth");
@@ -65,7 +62,8 @@ public class BillingConsumer {
             HttpEntity<String> entity = new HttpEntity<>(responseBody, headers);
             ResponseEntity<String> webhookResponse = restTemplate.postForEntity(webhookUrl, entity, String.class);
 
-            log.info("Webhook callback response: status={} body={}", webhookResponse.getStatusCode(), webhookResponse.getBody());
+            log.info("Webhook callback response: status={} body={}", webhookResponse.getStatusCode(),
+                    webhookResponse.getBody());
             log.info("========== BILLING CALLBACK END ========== SUCCESS");
 
             channel.basicAck(deliveryTag, false);

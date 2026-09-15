@@ -1,4 +1,4 @@
-package com.gateway.billing.config;
+package com.gateway.walletcentral.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -4,8 +4,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class BillingGatewayApplication {
+public class WalletCentralGatewayApplication {
 
-    public static void main(String[] args) { SpringApplication.run(BillingGatewayApplication.class, args); }
+    public static void main(String[] args) { SpringApplication.run(WalletCentralGatewayApplication.class, args); }
 
 }

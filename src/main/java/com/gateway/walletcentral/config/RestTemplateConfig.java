@@ -1,4 +1,4 @@
-package com.gateway.billing.config;
+package com.gateway.walletcentral.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

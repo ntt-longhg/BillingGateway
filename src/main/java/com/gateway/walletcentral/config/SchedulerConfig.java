@@ -1,6 +1,6 @@
-package com.gateway.billing.config;
+package com.gateway.walletcentral.config;
 
-import com.gateway.billing.modules.auth.service.AuthService;
+import com.gateway.walletcentral.modules.auth.service.AuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
