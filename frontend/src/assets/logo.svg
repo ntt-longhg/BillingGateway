@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <!-- Gradient nền tạo chiều sâu công nghệ (Fintech Dark Blue) -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b1329" />
+      <stop offset="100%" stop-color="#1c2541" />
+    </linearGradient>
+
+    <!-- Gradient cho Chuỗi liên kết chữ W (Neon Cyan sang Royal Blue) -->
+    <linearGradient id="wGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f2fe" />
+      <stop offset="100%" stop-color="#4facfe" />
+    </linearGradient>
+
+    <!-- Hiệu ứng phát sáng bóng mờ (Glow Effect) cho biểu tượng bảo mật -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Khung nền bo góc (App Icon Style) -->
+  <rect width="100" height="100" rx="26" fill="url(#bgGrad)" />
+
+  <!-- Nhóm các đường nét cấu thành Chữ W + Chuỗi Liên Kết -->
+  <g filter="url(#glow)">
+    <!-- Mắt xích trái của chữ W -->
+    <path d="M 22 28 
+             L 36 72 
+             A 7 7 0 0 0 49 71 
+             L 53 52" 
+          fill="none" 
+          stroke="url(#wGrad)" 
+          stroke-width="7" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+
+    <!-- Mắt xích phải của chữ W -->
+    <path d="M 78 28 
+             L 64 72 
+             A 7 7 0 0 1 51 71 
+             L 47 52" 
+          fill="none" 
+          stroke="url(#wGrad)" 
+          stroke-width="7" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+
+    <!-- Điểm khóa trung tâm (Central Gateway Node) - Khóa 2 mắt xích lại với nhau -->
+    <path d="M 44 48 L 50 55 L 56 48" 
+          fill="none" 
+          stroke="#ffffff" 
+          stroke-width="6" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+          
+    <!-- Chấm tròn bảo mật (Mã hóa cryptographic node) nằm tại tâm Gateway -->
+    <circle cx="50" cy="35" r="3.5" fill="#00f2fe" />
+    <line x1="50" y1="35" x2="50" y2="44" stroke="#00f2fe" stroke-width="2.5" stroke-linecap="round" />
+  </g>
+</svg>

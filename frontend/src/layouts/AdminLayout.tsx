@@ -57,7 +57,7 @@ export const AdminLayout: React.FC = () => {
               BG
             </div>
             <div>
-              <h2 className="font-bold text-base tracking-wide text-white">BillingGateway</h2>
+              <h2 className="font-bold text-base tracking-wide text-white">WalletCentral</h2>
               <p className="text-xs text-slate-400">Admin Control Panel</p>
             </div>
           </div>
@@ -156,7 +156,7 @@ export const AdminLayout: React.FC = () => {
         {/* Header */}
         <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between shadow-xs sticky top-0 z-10">
           <div className="flex items-center gap-2 text-sm text-slate-500">
-            <span className="font-medium text-slate-700">Billing Gateway Platform</span>
+            <span className="font-medium text-slate-700">WalletCentral Platform</span>
             <span>/</span>
             <span className="capitalize text-slate-900 font-semibold">
               {location.pathname === '/admin'
@@ -192,7 +192,7 @@ export const AdminLayout: React.FC = () => {
 
         {/* Footer */}
         <footer className="py-4 px-6 bg-white border-t border-slate-200 text-center text-xs text-slate-500">
-          © 2026 BillingGateway Platform. Tất cả các quyền được bảo lưu.
+          © {new Date().getFullYear()} WalletCentral Platform. Tất cả các quyền được bảo lưu.
         </footer>
       </div>
     </div>

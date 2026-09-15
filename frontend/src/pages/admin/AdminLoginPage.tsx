@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/context/AuthContext';
 import { ShieldCheck, Mail, KeyRound, AlertCircle, CheckCircle2, Loader2, ArrowLeft, Clock } from 'lucide-react';
+import Logo from '../../assets/logo.svg';
 
 export const AdminLoginPage: React.FC = () => {
   const [step, setStep] = useState<'email' | 'otp'>('email');
@@ -118,10 +119,8 @@ export const AdminLoginPage: React.FC = () => {
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-blue-600 shadow-lg shadow-blue-600/30 mb-4">
-            <span className="text-2xl font-bold text-white">BG</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900">BillingGateway</h1>
+          <img src={Logo} alt="WalletCentral Logo" className="h-24 mx-auto mb-3" />
+          <h1 className="text-2xl font-bold text-slate-900">WalletCentral</h1>
           <p className="text-sm text-slate-500 mt-1">Admin Control Panel</p>
         </div>
 
