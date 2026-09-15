@@ -9,7 +9,7 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.gateway</groupId>
-    <artifactId>billing</artifactId>
+    <artifactId>walletcentral</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>BillingGateway</name>
     <description>BillingGateway</description>
